@@ -1,0 +1,18 @@
+# .gitignore — les fichiers que Git doit ignorer (jamais publiés sur GitHub)
+
+# Fichiers créés automatiquement par Windows et macOS
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# Réglages des logiciels d'édition de code
+.vscode/
+.idea/
+
+# Archives (le .zip de livraison ne doit pas être publié)
+*.zip
+
+# Journaux et fichiers temporaires
+*.log
+*.tmp
+*~

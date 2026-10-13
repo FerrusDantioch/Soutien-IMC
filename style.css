@@ -1,0 +1,501 @@
+/* =============================================================
+   style.css — l'apparence de l'application « Ma fiche »
+
+   Principes d'accessibilité appliqués ici :
+   - contrastes très élevés (niveau WCAG AAA : 7 pour 1 au minimum
+     pour le texte) en thème clair comme en thème sombre ;
+   - boutons d'au moins 64 px de haut, bien espacés ;
+   - aucune animation, aucune transition, aucun clignotement ;
+   - tailles en « rem » : tout grandit avec les boutons A− / A+.
+   ============================================================= */
+
+
+/* ---------- 1. Les couleurs (thème clair, par défaut) ---------- */
+:root {
+  color-scheme: light dark;
+
+  /* Multiplicateur de taille du texte, changé par les boutons A− / A+ */
+  --echelle: 1;
+
+  --fond: #FFFFFF;
+  --texte: #111111;            /* contraste 18,9 sur le fond */
+  --texte-doux: #333333;       /* contraste 12,6 : étiquettes */
+  --bordure: #111111;
+  --fond-bouton: #FFFFFF;
+  --fond-appui: #D9D9D9;       /* couleur pendant l'appui sur un bouton */
+  --fond-champ: #FFFFFF;
+  --fond-conjoint: #E3EEF9;    /* bloc du conjoint, bleu très pâle */
+
+  --primaire: #003A70;         /* bleu foncé du bouton principal */
+  --sur-primaire: #FFFFFF;     /* texte sur le bleu : contraste 11,4 */
+  --primaire-appui: #00264A;
+
+  --focus: #B34700;            /* contour orange autour de l'élément actif */
+
+  --succes-fond: #E6F4EA;
+  --succes-bord: #1E6B30;
+  --erreur-fond: #FDECEC;
+  --erreur-bord: #8A0000;
+  --erreur-texte: #8A0000;     /* contraste 10,1 */
+  --info-fond: #F2F2F2;
+}
+
+/* ---------- 2. Thème sombre (suit le réglage du téléphone) ---------- */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fond: #121212;
+    --texte: #F5F5F5;          /* contraste 17,2 */
+    --texte-doux: #D0D0D0;     /* contraste 12,2 */
+    --bordure: #F5F5F5;
+    --fond-bouton: #1E1E1E;
+    --fond-appui: #3A3A3A;
+    --fond-champ: #1E1E1E;
+    --fond-conjoint: #0D2A47;
+
+    --primaire: #9CCBFF;       /* bleu clair */
+    --sur-primaire: #000000;   /* texte noir sur bleu clair : contraste 12,4 */
+    --primaire-appui: #C8E2FF;
+
+    --focus: #FFB347;
+
+    --succes-fond: #0E2A15;
+    --succes-bord: #7BD88F;
+    --erreur-fond: #3A0E0E;
+    --erreur-bord: #FFB3B3;
+    --erreur-texte: #FFB3B3;
+    --info-fond: #262626;
+  }
+}
+
+
+/* ---------- 3. Règles générales ---------- */
+
+/* Aucune animation ni transition, nulle part. */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  animation: none !important;
+  transition: none !important;
+  scroll-behavior: auto !important;
+}
+
+/* L'attribut « hidden » cache toujours l'élément, quoi qu'il arrive. */
+[hidden] {
+  display: none !important;
+}
+
+html {
+  /* 137,5 % de la taille du téléphone = 22 px environ,
+     multiplié par le réglage A− / A+. */
+  font-size: calc(137.5% * var(--echelle));
+  /* Empêche le zoom par double appui (évite les zooms involontaires).
+     Le zoom à deux doigts reste possible. */
+  touch-action: manipulation;
+  background: var(--fond);
+}
+
+body {
+  margin: 0;
+  background: var(--fond);
+  color: var(--texte);
+  font-family: system-ui, Roboto, "Segoe UI", Arial, sans-serif;
+  line-height: 1.5;
+}
+
+main {
+  max-width: 40rem;
+  margin: 0 auto;
+  /* 16 px de marge sur les côtés, plus la zone de sécurité des écrans à encoche */
+  padding: 16px max(16px, env(safe-area-inset-right)) 48px max(16px, env(safe-area-inset-left));
+}
+
+h1 {
+  font-size: 1.6rem;
+  line-height: 1.25;
+  margin: 0.25rem 0 1rem;
+}
+
+h2 {
+  font-size: 1.3rem;
+  line-height: 1.3;
+  margin: 0 0 0.25rem;
+}
+
+p {
+  margin: 0;
+}
+
+/* Le titre reçoit le « focus » à chaque changement d'écran
+   (pour TalkBack) : inutile d'afficher un contour autour. */
+[tabindex="-1"]:focus {
+  outline: none;
+}
+
+/* Texte lu par TalkBack mais invisible à l'écran. */
+.visuellement-cache {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* La réserve d'icônes ne prend aucune place. */
+.sprite {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+.noscript {
+  margin: 16px;
+  padding: 16px;
+  border: 3px solid var(--bordure);
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+
+/* ---------- 4. La fiche ---------- */
+
+.etiquette {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--texte-doux);
+}
+
+.bloc-conjoint {
+  background: var(--fond-conjoint);
+  border: 3px solid var(--bordure);
+  border-radius: 16px;
+  padding: 0.6rem 0.75rem 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.conjoint-nom {
+  font-size: 1.8rem;
+  font-weight: 800;
+  line-height: 1.2;
+  margin-top: 0.2rem;
+  overflow-wrap: anywhere;      /* un nom très long passe à la ligne */
+}
+
+.conjoint-telephone {
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1.2;
+  margin-top: 0.3rem;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;      /* dernier recours si le texte est énorme */
+}
+
+.bloc-moi > div + div {
+  margin-top: 1rem;
+}
+
+.moi-nom {
+  font-size: 1.4rem;
+  font-weight: 700;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.message-libre {
+  font-size: 1.2rem;
+  white-space: pre-line;        /* garde les retours à la ligne tapés */
+  overflow-wrap: anywhere;
+}
+
+
+/* ---------- 5. Les boutons ---------- */
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: max(20px, 1rem);         /* grand espace entre les boutons */
+  margin-top: 1.5rem;
+}
+
+/* Deux boutons côte à côte (A− / A+, Plus lent / Plus rapide).
+   Si le texte est très grand, ils se placent l'un sous l'autre. */
+.paire {
+  display: flex;
+  flex-wrap: wrap;
+  gap: max(20px, 1rem);
+  margin-top: 0.75rem;
+}
+
+.paire > .bouton {
+  flex: 1 1 7.5rem;
+}
+
+.bouton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6em;
+  width: 100%;
+  min-height: max(64px, 3rem);  /* au moins 64 px de haut */
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  font: inherit;
+  font-size: 1.15rem;
+  font-weight: 700;
+  line-height: 1.25;
+  text-align: center;
+  text-decoration: none;
+  color: var(--texte);
+  background: var(--fond-bouton);
+  border: 3px solid var(--bordure);
+  border-radius: 14px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Le bouton principal : plus grand et coloré. */
+.bouton.principal {
+  min-height: max(80px, 3.6rem);
+  font-size: 1.35rem;
+  color: var(--sur-primaire);
+  background: var(--primaire);
+  border-color: var(--primaire);
+}
+
+/* Retour visuel immédiat pendant l'appui (sans animation). */
+.bouton:active {
+  background: var(--fond-appui);
+}
+
+.bouton.principal:active {
+  background: var(--primaire-appui);
+  border-color: var(--primaire-appui);
+}
+
+/* Contour bien visible autour de l'élément actif (clavier, TalkBack). */
+.bouton:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+  outline: 4px solid var(--focus);
+  outline-offset: 4px;
+}
+
+.icone {
+  width: 1.5em;
+  height: 1.5em;
+  flex: none;
+}
+
+/* Les lettres « A− » et « A+ » */
+.glyphe {
+  font-size: 1.4em;
+  font-weight: 900;
+  line-height: 1;
+}
+
+
+/* ---------- 6. Les messages (enregistré, erreur, information) ---------- */
+
+.message {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6em;
+  margin: 0 0 1.25rem;
+  padding: 0.75rem 1rem;
+  font-size: 1.15rem;
+  font-weight: 700;
+  border: 3px solid var(--bordure);
+  border-radius: 14px;
+  background: var(--info-fond);
+}
+
+/* Quand il n'y a pas de message, la zone ne prend aucune place. */
+.message:empty {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.message .icone {
+  margin-top: 0.05em;
+}
+
+.message.succes {
+  background: var(--succes-fond);
+  border-color: var(--succes-bord);
+  border-width: 4px;
+}
+
+.message.succes .icone {
+  color: var(--succes-bord);
+}
+
+.message.erreur {
+  background: var(--erreur-fond);
+  border-color: var(--erreur-bord);
+  border-width: 4px;
+}
+
+.message.erreur .icone {
+  color: var(--erreur-texte);
+}
+
+
+/* ---------- 7. Le formulaire ---------- */
+
+.explication {
+  font-size: 1.2rem;
+  margin-bottom: 1.25rem;
+}
+
+fieldset {
+  margin: 0 0 1.5rem;
+  padding: 0.25rem 1rem 1.25rem;
+  border: 3px solid var(--bordure);
+  border-radius: 14px;
+  min-width: 0;
+}
+
+legend {
+  padding: 0 0.4rem;
+  font-size: 1.3rem;
+  font-weight: 800;
+}
+
+/* Un champ par ligne */
+.champ {
+  margin-top: 1.25rem;
+}
+
+label {
+  display: block;
+  margin-bottom: 0.4rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.aide {
+  display: block;
+  margin-bottom: 0.4rem;
+  font-size: 1rem;
+  color: var(--texte-doux);
+}
+
+input,
+textarea {
+  display: block;
+  width: 100%;
+  min-height: max(64px, 2.9rem);
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  font: inherit;
+  font-size: 1.25rem;
+  color: var(--texte);
+  background: var(--fond-champ);
+  border: 3px solid var(--bordure);
+  border-radius: 10px;
+}
+
+textarea {
+  min-height: 8em;
+  line-height: 1.4;
+  resize: vertical;
+}
+
+/* Champ en erreur : bordure rouge plus épaisse + message écrit dessous */
+[aria-invalid="true"] {
+  border-color: var(--erreur-bord);
+  border-width: 5px;
+}
+
+.erreur-champ {
+  margin-top: 0.4rem;
+  font-weight: 700;
+  color: var(--erreur-texte);
+}
+
+
+/* ---------- 8. Les réglages ---------- */
+
+.reglage {
+  margin-bottom: 1.75rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 3px solid var(--bordure);
+}
+
+.valeur {
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.reglage .aide {
+  margin: 0.25rem 0 0;
+}
+
+
+/* ---------- 9. Le plein écran ---------- */
+
+/* L'écran recouvre tout. Le contenu peut défiler,
+   le bouton « Fermer » reste toujours visible en bas. */
+.ecran-plein {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  background: var(--fond);
+}
+
+.plein-contenu:focus-visible {
+  outline: 4px solid var(--focus);
+  outline-offset: -4px;
+}
+
+.plein-contenu {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) 16px max(16px, env(safe-area-inset-left));
+}
+
+.ecran-plein .conjoint-nom {
+  font-size: 2.3rem;
+}
+
+.ecran-plein .conjoint-telephone {
+  font-size: 2.4rem;
+}
+
+.ecran-plein .moi-nom {
+  font-size: 1.9rem;
+}
+
+.ecran-plein .message-libre {
+  font-size: 1.7rem;
+  line-height: 1.4;
+}
+
+.ecran-plein .etiquette {
+  font-size: 1.15rem;
+}
+
+.plein-barre {
+  flex: none;
+  padding: 12px max(16px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  border-top: 3px solid var(--bordure);
+  background: var(--fond);
+}
+
+.bouton-fermer {
+  max-width: 40rem;
+  margin: 0 auto;
+}
+
+.bouton.bouton-fermer {
+  min-height: max(88px, 3.8rem);
+  font-size: 1.6rem;
+}

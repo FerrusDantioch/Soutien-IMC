@@ -1,0 +1,347 @@
+<!doctype html>
+<!--
+  index.html — la structure de l'application « Ma fiche ».
+
+  Ce fichier contient tous les écrans. Un seul écran est visible à la fois :
+    1. Ma fiche (écran d'accueil)
+    2. Modifier ma fiche (formulaire)
+    3. Réglages (taille du texte, vitesse de la voix)
+    4. Plein écran (la fiche en très gros, pour la montrer)
+  C'est le fichier app.js qui choisit l'écran à montrer.
+
+  Tous les chemins sont relatifs (sans « / » au début) pour que l'application
+  fonctionne dans un sous-dossier, comme sur GitHub Pages.
+-->
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <!-- Adapte la page à la largeur du téléphone. Le zoom reste autorisé. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Ma fiche</title>
+  <meta name="description" content="Ma fiche de contact, facile à lire et lue à voix haute.">
+  <!-- Le téléphone ne doit pas transformer les numéros en liens tout seul. -->
+  <meta name="format-detection" content="telephone=no">
+  <!-- Thème clair et sombre : la page suit le réglage du téléphone. -->
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#003A70" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#121212" media="(prefers-color-scheme: dark)">
+
+  <!-- Fichier d'installation (PWA) et icône de l'onglet -->
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" href="icons/icon-192.png">
+  <link rel="stylesheet" href="style.css">
+
+  <script>
+    // Applique tout de suite la taille du texte mémorisée,
+    // pour éviter que la page change de taille juste après son ouverture.
+    try {
+      var reglagesMemorises = JSON.parse(localStorage.getItem('soutien-imc.reglages'));
+      if (reglagesMemorises && reglagesMemorises.taille >= 0.5 && reglagesMemorises.taille <= 3) {
+        document.documentElement.style.setProperty('--echelle', reglagesMemorises.taille);
+      }
+    } catch (erreur) { /* Rien à faire : on garde la taille normale. */ }
+  </script>
+  <!-- « defer » : le script se lance quand toute la page est lue. -->
+  <script src="app.js" defer></script>
+</head>
+<body>
+
+  <!--
+    Les icônes, dessinées une seule fois ici puis réutilisées dans les boutons.
+    aria-hidden="true" : les lecteurs d'écran (TalkBack) les ignorent,
+    car chaque icône est toujours accompagnée d'un texte.
+  -->
+  <svg class="sprite" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
+    <symbol id="icone-ecouter" viewBox="0 0 24 24">
+      <path d="M3 9h4l5-4v14l-5-4H3z" fill="currentColor"/>
+      <path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="icone-arreter" viewBox="0 0 24 24">
+      <rect x="5" y="5" width="14" height="14" rx="2" fill="currentColor"/>
+    </symbol>
+    <symbol id="icone-telephone" viewBox="0 0 24 24">
+      <path d="M5 3h3.5l2 5-2.5 1.6a12 12 0 0 0 6.4 6.4L16 13.5l5 2V19a2 2 0 0 1-2 2A17 17 0 0 1 3 5a2 2 0 0 1 2-2z" fill="currentColor"/>
+    </symbol>
+    <symbol id="icone-plein-ecran" viewBox="0 0 24 24">
+      <path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="icone-reglages" viewBox="0 0 24 24">
+      <path d="M3 6h10M19 6h2M3 12h3M12 12h9M3 18h12M21 18h0" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+      <circle cx="16" cy="6" r="2.5" fill="none" stroke="currentColor" stroke-width="2.2"/>
+      <circle cx="9" cy="12" r="2.5" fill="none" stroke="currentColor" stroke-width="2.2"/>
+      <circle cx="18" cy="18" r="2.5" fill="none" stroke="currentColor" stroke-width="2.2"/>
+    </symbol>
+    <symbol id="icone-modifier" viewBox="0 0 24 24">
+      <path d="M4 20h4L19 9l-4-4L4 16zM13.5 6.5l4 4" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="icone-fermer" viewBox="0 0 24 24">
+      <path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="icone-retour" viewBox="0 0 24 24">
+      <path d="M10 5l-7 7 7 7M3.5 12H21" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="icone-valider" viewBox="0 0 24 24">
+      <path d="M4 12.5l5 5L20 6.5" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="icone-moins" viewBox="0 0 24 24">
+      <path d="M5 12h14" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="icone-plus" viewBox="0 0 24 24">
+      <path d="M5 12h14M12 5v14" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="icone-succes" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="9.5" fill="none" stroke="currentColor" stroke-width="2.4"/>
+      <path d="M7.5 12.5l3 3L16.5 9" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="icone-erreur" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="9.5" fill="none" stroke="currentColor" stroke-width="2.4"/>
+      <path d="M12 7v6" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/>
+      <circle cx="12" cy="16.8" r="1.5" fill="currentColor"/>
+    </symbol>
+    <symbol id="icone-info" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="9.5" fill="none" stroke="currentColor" stroke-width="2.4"/>
+      <circle cx="12" cy="7.6" r="1.5" fill="currentColor"/>
+      <path d="M12 11v6" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/>
+    </symbol>
+  </svg>
+
+  <noscript>
+    <p class="noscript">Cette application a besoin de JavaScript. Activez JavaScript dans le navigateur.</p>
+  </noscript>
+
+  <main>
+
+    <!-- =====================================================
+         ÉCRAN 1 : MA FICHE (accueil)
+         Action principale : « Écouter ».
+         ===================================================== -->
+    <section id="ecran-accueil" class="ecran" aria-labelledby="titre-accueil" hidden>
+      <!-- Titre lu par TalkBack, mais caché à l'écran (la fiche parle d'elle-même). -->
+      <h1 id="titre-accueil" class="visuellement-cache" tabindex="-1">Ma fiche</h1>
+
+      <!-- Zone des messages (ex. : « C'est enregistré »). TalkBack la lit toute seule. -->
+      <div id="message-accueil" class="message" role="status"></div>
+
+      <!-- En tête : le conjoint, en très gros caractères -->
+      <div id="accueil-bloc-conjoint" class="bloc-conjoint">
+        <p class="etiquette">Mon conjoint</p>
+        <p id="accueil-conjoint-nom" class="conjoint-nom"></p>
+        <p id="accueil-conjoint-telephone" class="conjoint-telephone"></p>
+      </div>
+
+      <!-- Dessous : la personne et son message -->
+      <div class="bloc-moi">
+        <div id="accueil-bloc-nom">
+          <p class="etiquette">Je m’appelle</p>
+          <p id="accueil-moi-nom" class="moi-nom"></p>
+        </div>
+        <div id="accueil-bloc-message">
+          <p class="etiquette">Ce que je souhaite que l’on sache</p>
+          <p id="accueil-message" class="message-libre"></p>
+        </div>
+      </div>
+
+      <div class="actions">
+        <!-- Action principale -->
+        <button type="button" id="bouton-ecouter" class="bouton principal">
+          <svg class="icone" aria-hidden="true" focusable="false"><use id="bouton-ecouter-icone" href="#icone-ecouter"></use></svg>
+          <span id="bouton-ecouter-texte">Écouter</span>
+        </button>
+
+        <!-- Un lien « tel: » ouvre l'application Téléphone avec le numéro déjà rempli. -->
+        <a id="bouton-appeler" class="bouton" href="tel:">
+          <svg class="icone" aria-hidden="true" focusable="false"><use href="#icone-telephone"></use></svg>
+          <span>Appeler mon conjoint</span>
+        </a>
+
+        <button type="button" id="bouton-plein-ecran" class="bouton">
+          <svg class="icone" aria-hidden="true" focusable="false"><use href="#icone-plein-ecran"></use></svg>
+          <span>Plein écran</span>
+        </button>
+
+        <button type="button" id="bouton-reglages" class="bouton">
+          <svg class="icone" aria-hidden="true" focusable="false"><use href="#icone-reglages"></use></svg>
+          <span>Réglages</span>
+        </button>
+      </div>
+    </section>
+
+
+    <!-- =====================================================
+         ÉCRAN 2 : MODIFIER MA FICHE (formulaire)
+         Action principale : « Enregistrer ».
+         Chaque <label for="…"> est relié à son champ par l'identifiant (id) :
+         TalkBack lit donc le bon nom pour chaque case.
+         Ce sont de vrais champs de texte : le micro du clavier (Gboard) fonctionne.
+         ===================================================== -->
+    <section id="ecran-modifier" class="ecran" aria-labelledby="titre-modifier" hidden>
+      <h1 id="titre-modifier" tabindex="-1">Modifier ma fiche</h1>
+
+      <p id="explication-premiere-fois" class="explication" hidden>
+        Remplissez votre fiche. Elle reste dans ce téléphone.
+        Rien n’est envoyé sur internet.
+      </p>
+
+      <div id="message-modifier" class="message" role="status"></div>
+
+      <!-- novalidate : c'est app.js qui vérifie les champs et affiche des messages clairs. -->
+      <form id="formulaire" novalidate>
+        <fieldset>
+          <legend>Mon conjoint</legend>
+
+          <div class="champ">
+            <label for="champ-conjoint-prenom">Prénom de mon conjoint</label>
+            <input id="champ-conjoint-prenom" name="conjointPrenom" type="text"
+                   autocomplete="off" autocapitalize="words" spellcheck="false" maxlength="60">
+          </div>
+
+          <div class="champ">
+            <label for="champ-conjoint-nom">Nom de mon conjoint</label>
+            <input id="champ-conjoint-nom" name="conjointNom" type="text"
+                   autocomplete="off" autocapitalize="words" spellcheck="false" maxlength="60">
+          </div>
+
+          <div class="champ">
+            <label for="champ-conjoint-telephone">Téléphone de mon conjoint</label>
+            <span id="aide-telephone" class="aide">Exemple : 06 00 00 00 00</span>
+            <!-- type="tel" : le téléphone affiche un grand pavé de chiffres. -->
+            <input id="champ-conjoint-telephone" name="conjointTelephone" type="tel"
+                   autocomplete="off" maxlength="25"
+                   aria-describedby="aide-telephone erreur-telephone">
+            <p id="erreur-telephone" class="erreur-champ" hidden></p>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Moi</legend>
+
+          <div class="champ">
+            <label for="champ-prenom">Mon prénom</label>
+            <input id="champ-prenom" name="prenom" type="text"
+                   autocomplete="given-name" autocapitalize="words" spellcheck="false" maxlength="60">
+          </div>
+
+          <div class="champ">
+            <label for="champ-nom">Mon nom</label>
+            <input id="champ-nom" name="nom" type="text"
+                   autocomplete="family-name" autocapitalize="words" spellcheck="false" maxlength="60">
+          </div>
+
+          <div class="champ">
+            <label for="champ-message">Ce que je souhaite que l’on sache</label>
+            <span id="aide-message" class="aide">Exemple : Prenez le temps de m’écouter. Posez-moi des questions fermées.</span>
+            <textarea id="champ-message" name="message" rows="5"
+                      autocapitalize="sentences" maxlength="1000"
+                      aria-describedby="aide-message"></textarea>
+          </div>
+        </fieldset>
+
+        <div class="actions">
+          <!-- Action principale -->
+          <button type="submit" class="bouton principal">
+            <svg class="icone" aria-hidden="true" focusable="false"><use href="#icone-valider"></use></svg>
+            <span>Enregistrer</span>
+          </button>
+          <button type="button" id="bouton-annuler" class="bouton">
+            <svg class="icone" aria-hidden="true" focusable="false"><use href="#icone-fermer"></use></svg>
+            <span>Annuler</span>
+          </button>
+        </div>
+      </form>
+    </section>
+
+
+    <!-- =====================================================
+         ÉCRAN 3 : RÉGLAGES
+         Action principale : « Retour à ma fiche ».
+         ===================================================== -->
+    <section id="ecran-reglages" class="ecran" aria-labelledby="titre-reglages" hidden>
+      <h1 id="titre-reglages" tabindex="-1">Réglages</h1>
+
+      <div id="message-reglages" class="message" role="status"></div>
+
+      <section class="reglage" aria-labelledby="titre-taille">
+        <h2 id="titre-taille">Taille du texte</h2>
+        <!-- aria-live : TalkBack annonce la nouvelle taille à chaque appui. -->
+        <p id="valeur-taille" class="valeur" aria-live="polite"></p>
+        <div class="paire">
+          <button type="button" id="bouton-texte-moins" class="bouton">
+            <span class="glyphe" aria-hidden="true">A−</span>
+            <span><span class="visuellement-cache">Texte </span>Plus petit</span>
+          </button>
+          <button type="button" id="bouton-texte-plus" class="bouton">
+            <span class="glyphe" aria-hidden="true">A+</span>
+            <span><span class="visuellement-cache">Texte </span>Plus grand</span>
+          </button>
+        </div>
+      </section>
+
+      <section class="reglage" aria-labelledby="titre-vitesse">
+        <h2 id="titre-vitesse">Vitesse de la voix</h2>
+        <p id="valeur-vitesse" class="valeur"></p>
+        <p class="aide">À chaque appui, la voix dit une phrase d’essai.</p>
+        <div class="paire">
+          <button type="button" id="bouton-plus-lent" class="bouton">
+            <svg class="icone" aria-hidden="true" focusable="false"><use href="#icone-moins"></use></svg>
+            <span>Plus lent</span>
+          </button>
+          <button type="button" id="bouton-plus-rapide" class="bouton">
+            <svg class="icone" aria-hidden="true" focusable="false"><use href="#icone-plus"></use></svg>
+            <span>Plus rapide</span>
+          </button>
+        </div>
+      </section>
+
+      <div class="actions">
+        <button type="button" id="bouton-modifier" class="bouton">
+          <svg class="icone" aria-hidden="true" focusable="false"><use href="#icone-modifier"></use></svg>
+          <span>Modifier ma fiche</span>
+        </button>
+        <!-- Action principale -->
+        <button type="button" id="bouton-retour" class="bouton principal">
+          <svg class="icone" aria-hidden="true" focusable="false"><use href="#icone-retour"></use></svg>
+          <span>Retour à ma fiche</span>
+        </button>
+      </div>
+    </section>
+
+
+    <!-- =====================================================
+         ÉCRAN 4 : PLEIN ÉCRAN
+         La fiche en très gros, pour la montrer à quelqu'un.
+         Action unique : « Fermer » (toujours visible en bas).
+         ===================================================== -->
+    <section id="ecran-plein" class="ecran ecran-plein" hidden>
+      <!-- tabindex="0" : cette zone peut défiler, on doit pouvoir l'atteindre au clavier. -->
+      <div class="plein-contenu" tabindex="0" role="region" aria-labelledby="titre-plein">
+        <h1 id="titre-plein" class="visuellement-cache" tabindex="-1">Ma fiche en plein écran</h1>
+
+        <div id="plein-bloc-conjoint" class="bloc-conjoint">
+          <p class="etiquette">Mon conjoint</p>
+          <p id="plein-conjoint-nom" class="conjoint-nom"></p>
+          <p id="plein-conjoint-telephone" class="conjoint-telephone"></p>
+        </div>
+
+        <div class="bloc-moi">
+          <div id="plein-bloc-nom">
+            <p class="etiquette">Je m’appelle</p>
+            <p id="plein-moi-nom" class="moi-nom"></p>
+          </div>
+          <div id="plein-bloc-message">
+            <p class="etiquette">Ce que je souhaite que l’on sache</p>
+            <p id="plein-message" class="message-libre"></p>
+          </div>
+        </div>
+      </div>
+
+      <div class="plein-barre">
+        <button type="button" id="bouton-fermer" class="bouton principal bouton-fermer">
+          <svg class="icone" aria-hidden="true" focusable="false"><use href="#icone-fermer"></use></svg>
+          <span>Fermer</span>
+        </button>
+      </div>
+    </section>
+
+  </main>
+</body>
+</html>
