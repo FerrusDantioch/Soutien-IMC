@@ -15,7 +15,7 @@
 // IMPORTANT : à chaque modification d'un fichier de l'application,
 // augmentez ce numéro (v1 → v2 → v3…). Sinon, les téléphones
 // continueront d'utiliser l'ancienne copie.
-const VERSION = 'v3';
+const VERSION = 'v4';
 
 // Le nom de la copie commence par « soutien-imc- » pour ne jamais
 // toucher aux copies d'autres sites hébergés à la même adresse.

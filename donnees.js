@@ -123,11 +123,13 @@ function texteSur(valeur, longueur) {
 
 // Longueurs maximales des cases de la fiche : on les lit dans le formulaire
 // (attribut « maxlength » de index.html). Ainsi, elles ne sont écrites qu'à un seul endroit.
+// Une case sans « maxlength » (le navigateur répond alors -1) n'est pas raccourcie.
 function longueursDeLaFiche() {
   const formulaire = element('formulaire');
   const longueurs = {};
   CHAMPS.forEach((champ) => {
-    longueurs[champ] = formulaire.elements[champ].maxLength;
+    const maximum = formulaire.elements[champ].maxLength;
+    longueurs[champ] = maximum > 0 ? maximum : Infinity;
   });
   return longueurs;
 }
@@ -161,9 +163,11 @@ function verifierLaSauvegarde(contenu) {
     }
   });
 
-  // Les appels
+  // Les appels (seulement ceux qui ont une vraie date écrite en texte :
+  // une valeur vide ou un nombre donnerait une fausse date, en 1970)
   const appelsLus = (Array.isArray(contenu.appels) ? contenu.appels : [])
-    .filter((appel) => appel && typeof appel === 'object' && !isNaN(new Date(appel.date).getTime()))
+    .filter((appel) => appel && typeof appel === 'object' && typeof appel.date === 'string' &&
+                       !isNaN(new Date(appel.date).getTime()))
     .map((appel, rang) => ({
       id: texteSur(appel.id, 40) || String(rang),
       date: new Date(appel.date).toISOString(),
@@ -193,7 +197,7 @@ function montrerLaConfirmation(sauvegarde) {
     (sauvegarde.fiche ? '' : ' Ce fichier ne contient pas de fiche : vous devrez la remplir à nouveau.');
   element('donnees-choix').hidden = true;
   element('donnees-confirmation').hidden = false;
-  dernierAppui = Date.now();        // un appui en trop, juste après, sera ignoré
+  dernierAppui = performance.now(); // un appui en trop, juste après, sera ignoré
   element('titre-confirmation').focus();
 }
 
@@ -248,6 +252,14 @@ function confirmerLaRestauration() {
   fiche = sauvegarde.fiche;
   textesModifies = sauvegarde.textes;
   appels = sauvegarde.appels;
+  if (!fiche) {
+    // Le fichier n'avait pas de fiche : on va tout de suite au formulaire « Bienvenue »
+    // (et l'historique repart de zéro, pour que le bouton « retour » d'Android reste logique).
+    revenirALaFiche();
+    annoncerApresChangement('message-modifier',
+      'C’est fait. Vos données sont restaurées. Le fichier ne contenait pas de fiche : remplissez-la ici.', 'info');
+    return;
+  }
   afficherMessage('message-donnees', 'C’est fait. Vos données sont restaurées depuis le fichier.', 'succes');
 }
 

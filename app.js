@@ -109,7 +109,10 @@ const PARENTS = {
 let fiche = null;                 // la fiche enregistrée (ou null si elle est vide)
 let reglages = { vitesse: VITESSE_PAR_DEFAUT, taille: TAILLE_PAR_DEFAUT };
 let ecranActuel = null;           // l'écran visible en ce moment
-let dernierAppui = 0;             // heure du dernier appui accepté (anti-rebond)
+// Les durées (anti-rebond, curseur, lecture) sont mesurées avec performance.now() :
+// ce chronomètre ne recule jamais, même si l'heure du téléphone est corrigée.
+// (Avec l'heure du téléphone, une heure reculée bloquerait tous les appuis pendant une heure.)
+let dernierAppui = -Infinity;     // moment du dernier appui accepté (anti-rebond)
 let appuiEnCours = null;          // l'élément touché pendant l'appui en cours (anti-rebond)
 let quandOnArrive = null;         // ce qu'il reste à faire après un recul dans l'historique
 let voixFrancaise = null;         // la voix française choisie
@@ -200,7 +203,7 @@ function ficheLue(brute, longueurs) {
 // Quand on touche une grande case de texte, le curseur se place à la fin :
 // la dictée (micro du clavier) ajoute alors le texte à la suite, sans couper ce qui est déjà écrit.
 // (Placer le curseur au milieu d'un mot demande un geste trop précis.)
-let heureDuFocus = 0;
+let heureDuFocus = -Infinity;
 
 function curseurALaFin(champ) {
   const fin = champ.value.length;
@@ -208,17 +211,17 @@ function curseurALaFin(champ) {
 }
 
 function quandUneCaseRecoitLeFocus(evenement) {
-  heureDuFocus = Date.now();
+  heureDuFocus = performance.now();
   curseurALaFin(evenement.target);
 }
 
 // Le toucher qui ouvre la case pose le curseur sous le doigt, juste après le focus :
 // on le remet à la fin. Un toucher suivant, lui, place le curseur où l'on veut.
 function quandOnToucheUneCase(evenement) {
-  if (Date.now() - heureDuFocus < 1000) {
+  if (performance.now() - heureDuFocus < 1000) {
     curseurALaFin(evenement.target);
   }
-  heureDuFocus = 0;
+  heureDuFocus = -Infinity;
 }
 
 // Change l'adresse de la page (la partie après « # ») sans recharger.
@@ -362,7 +365,7 @@ function afficherEcran(nom, options = {}) {
   ecranActuel = nom;
 
   // Un appui « en trop » juste après le changement d'écran sera ignoré.
-  dernierAppui = Date.now();
+  dernierAppui = performance.now();
   window.scrollTo(0, 0);
 
   // TalkBack se place sur le titre du nouvel écran et le lit.
@@ -666,9 +669,10 @@ function afficherFiche() {
     remplirPersonnes(ecran, f);
   });
 
-  // Le bouton « Appeler » n'apparaît que s'il y a un numéro.
+  // Le bouton « Appeler » n'apparaît que s'il y a un numéro correct
+  // (comme pour les personnes à prévenir).
   const lienAppel = element('bouton-appeler');
-  if (telephone) {
+  if (telephone && numeroValide(telephone)) {
     lienAppel.href = 'tel:' + numeroPourAppel(telephone);
     lienAppel.hidden = false;
   } else {
@@ -876,10 +880,13 @@ function choisirVoix() {
 }
 
 // Découpe un texte en phrases (la voix lit mieux des phrases courtes).
+// On coupe seulement après un point suivi d'une espace (ou en fin de ligne) :
+// une dose comme « 0.5 g » ou un numéro comme « 01.00.00.00.00 » reste entier,
+// et la voix le lit d'un seul tenant (sinon : « zéro », une pause, puis « 5 g »).
 function decouperEnPhrases(texte) {
   return nettoyer(texte)
     .split(/\n+/)
-    .flatMap((ligne) => ligne.match(/[^.!?…]+[.!?…]*/g) || [])
+    .flatMap((ligne) => ligne.split(/(?<=[.!?…])\s+/))
     .map((phrase) => phrase.trim())
     .filter(Boolean);
 }
@@ -985,7 +992,7 @@ function parler(phrases, bouton) {
   }
 
   const numero = numeroLecture;
-  const debut = Date.now();
+  const debut = performance.now();
   boutonLecture = bouton || null;
   marquerLecture(true);
 
@@ -1027,7 +1034,7 @@ function parler(phrases, bouton) {
         clearInterval(surveillanceLecture);
         return;
       }
-      if (Date.now() - debut > 2000 && !synthese.speaking && !synthese.pending) {
+      if (performance.now() - debut > 2000 && !synthese.speaking && !synthese.pending) {
         finDeLecture();
       }
     }, 1000);
@@ -1117,7 +1124,7 @@ function filtrerLesAppuisTropRapides(evenement) {
   if (cible === appuiEnCours) {
     return;
   }
-  const maintenant = Date.now();
+  const maintenant = performance.now();
   if (maintenant - dernierAppui < DELAI_ANTI_REBOND) {
     evenement.preventDefault();
     evenement.stopImmediatePropagation();
