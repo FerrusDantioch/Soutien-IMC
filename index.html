@@ -7,6 +7,9 @@
     2. Modifier ma fiche (formulaire)
     3. Réglages (taille du texte, vitesse de la voix)
     4. Plein écran (la fiche en très gros, pour la montrer)
+    5. Mes données (sauvegarder ou restaurer dans un fichier)
+    6. Préparer un appel : choisir la raison, ma préparation, ma phrase
+       et mes questions, pendant l'appel (notes), récapitulatif, mes appels
   C'est le fichier app.js qui choisit l'écran à montrer.
 
   Tous les chemins sont relatifs (sans « / » au début) pour que l'application
@@ -41,8 +44,12 @@
       }
     } catch (erreur) { /* Rien à faire : on garde la taille normale. */ }
   </script>
-  <!-- « defer » : le script se lance quand toute la page est lue. -->
+  <!-- « defer » : les scripts se lancent quand toute la page est lue, dans cet ordre.
+       app.js : la fiche et les outils communs ; appels.js : « Préparer un appel » ;
+       donnees.js : « Mes données ». -->
   <script src="app.js" defer></script>
+  <script src="appels.js" defer></script>
+  <script src="donnees.js" defer></script>
 </head>
 <body>
 
@@ -103,6 +110,31 @@
       <circle cx="12" cy="7.6" r="1.5" fill="currentColor"/>
       <path d="M12 11v6" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/>
     </symbol>
+    <!-- Icônes du module « Préparer un appel » et de « Mes données » -->
+    <symbol id="icone-preparer" viewBox="0 0 24 24">
+      <path d="M9 3.5h6v3.5H9z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/>
+      <path d="M9 5.2H5.5v15.3h13V5.2H15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/>
+      <path d="M8.5 11.5h7M8.5 15.5h7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="icone-notes" viewBox="0 0 24 24">
+      <path d="M5 3h10l4 4v14H5z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/>
+      <path d="M8.5 8h3.5M8.5 12h7M8.5 16h7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="icone-liste" viewBox="0 0 24 24">
+      <path d="M9 6h11M9 12h11M9 18h11" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
+      <circle cx="4.5" cy="6" r="1.7" fill="currentColor"/>
+      <circle cx="4.5" cy="12" r="1.7" fill="currentColor"/>
+      <circle cx="4.5" cy="18" r="1.7" fill="currentColor"/>
+    </symbol>
+    <symbol id="icone-dossier" viewBox="0 0 24 24">
+      <path d="M3 6.5A1.5 1.5 0 0 1 4.5 5H9l2 2.5h8.5A1.5 1.5 0 0 1 21 9v9.5a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="icone-sauvegarder" viewBox="0 0 24 24">
+      <path d="M12 3.5v11M7 10l5 5 5-5M4 20h16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="icone-restaurer" viewBox="0 0 24 24">
+      <path d="M12 15V4M7 8.5l5-5 5 5M4 20h16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
   </svg>
 
   <noscript>
@@ -146,6 +178,12 @@
         <button type="button" id="bouton-ecouter" class="bouton principal">
           <svg class="icone" aria-hidden="true" focusable="false"><use id="bouton-ecouter-icone" href="#icone-ecouter"></use></svg>
           <span id="bouton-ecouter-texte">Écouter</span>
+        </button>
+
+        <!-- Ouvre le module « Préparer un appel » (fichier appels.js). -->
+        <button type="button" id="bouton-preparer-appel" class="bouton grand">
+          <svg class="icone" aria-hidden="true" focusable="false"><use href="#icone-preparer"></use></svg>
+          <span>Préparer un appel</span>
         </button>
 
         <!-- Un lien « tel: » ouvre l'application Téléphone avec le numéro déjà rempli. -->
@@ -256,6 +294,15 @@
          Action principale : « Retour à ma fiche ».
          ===================================================== -->
     <section id="ecran-reglages" class="ecran" aria-labelledby="titre-reglages" hidden>
+      <!-- Le bouton « Retour » : toujours en haut, au même endroit, sur chaque écran secondaire.
+           Il reste visible quand la page défile. -->
+      <div class="barre-haut">
+        <button type="button" class="bouton retour-haut">
+          <svg class="icone" aria-hidden="true" focusable="false"><use href="#icone-retour"></use></svg>
+          <span>Retour</span>
+        </button>
+      </div>
+
       <h1 id="titre-reglages" tabindex="-1">Réglages</h1>
 
       <div id="message-reglages" class="message" role="status"></div>
@@ -297,12 +344,19 @@
           <svg class="icone" aria-hidden="true" focusable="false"><use href="#icone-modifier"></use></svg>
           <span>Modifier ma fiche</span>
         </button>
+        <button type="button" id="bouton-donnees" class="bouton">
+          <svg class="icone" aria-hidden="true" focusable="false"><use href="#icone-dossier"></use></svg>
+          <span>Mes données</span>
+        </button>
         <!-- Action principale -->
         <button type="button" id="bouton-retour" class="bouton principal">
           <svg class="icone" aria-hidden="true" focusable="false"><use href="#icone-retour"></use></svg>
           <span>Retour à ma fiche</span>
         </button>
       </div>
+
+      <!-- La version installée (utile pour vérifier une mise à jour). Remplie par app.js. -->
+      <p id="version" class="version" hidden></p>
     </section>
 
 
@@ -340,6 +394,378 @@
           <span>Fermer</span>
         </button>
       </div>
+    </section>
+
+
+    <!-- =====================================================
+         ÉCRAN 5 : MES DONNÉES (ouvert depuis les réglages)
+         Sauvegarder dans un fichier, ou restaurer depuis un fichier.
+         La restauration demande toujours une confirmation.
+         ===================================================== -->
+    <section id="ecran-donnees" class="ecran" aria-labelledby="titre-donnees" hidden>
+      <div class="barre-haut">
+        <button type="button" class="bouton retour-haut">
+          <svg class="icone" aria-hidden="true" focusable="false"><use href="#icone-retour"></use></svg>
+          <span>Retour</span>
+        </button>
+      </div>
+
+      <h1 id="titre-donnees" tabindex="-1">Mes données</h1>
+      <div id="message-donnees" class="message" role="status"></div>
+
+      <div id="donnees-choix">
+        <p class="explication">
+          Le fichier de sauvegarde contient ma fiche, mes phrases modifiées et mes appels.
+          Il permet de tout retrouver, par exemple sur un nouveau téléphone.
+        </p>
+        <p class="explication">Ce fichier contient des informations personnelles. Gardez-le pour vous.</p>
+        <div class="actions">
+          <!-- Action principale -->
+          <button type="button" id="bouton-sauvegarder" class="bouton principal">
+            <svg class="icone" aria-hidden="true" focusable="false"><use href="#icone-sauvegarder"></use></svg>
+            <span>Sauvegarder dans un fichier</span>
+          </button>
+          <button type="button" id="bouton-restaurer" class="bouton">
+            <svg class="icone" aria-hidden="true" focusable="false"><use href="#icone-restaurer"></use></svg>
+            <span>Restaurer depuis un fichier</span>
+          </button>
+        </div>
+        <!-- Le sélecteur de fichier du téléphone. Il est caché : c'est le bouton
+             « Restaurer depuis un fichier » qui l'ouvre. -->
+        <input type="file" id="champ-fichier" accept="application/json,.json" hidden>
+      </div>
+
+      <!-- Confirmation avant de remplacer les données. Affichée par donnees.js. -->
+      <div id="donnees-confirmation" class="confirmation" hidden>
+        <h2 id="titre-confirmation" tabindex="-1">Remplacer mes données ?</h2>
+        <p id="texte-confirmation"></p>
+        <div class="actions">
+          <button type="button" id="bouton-confirmer-restauration" class="bouton principal">
+            <svg class="icone" aria-hidden="true" focusable="false"><use href="#icone-valider"></use></svg>
+            <span>Oui, remplacer mes données</span>
+          </button>
+          <button type="button" id="bouton-annuler-restauration" class="bouton">
+            <svg class="icone" aria-hidden="true" focusable="false"><use href="#icone-fermer"></use></svg>
+            <span>Non, garder mes données</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- =====================================================
+         PRÉPARER UN APPEL — écran 1 : choisir la raison de l'appel
+         Les six grands boutons sont créés par appels.js
+         à partir de la liste RAISONS (en haut de ce fichier).
+         ===================================================== -->
+    <section id="ecran-raisons" class="ecran" aria-labelledby="titre-raisons" hidden>
+      <div class="barre-haut">
+        <button type="button" class="bouton retour-haut">
+          <svg class="icone" aria-hidden="true" focusable="false"><use href="#icone-retour"></use></svg>
+          <span>Retour</span>
+        </button>
+      </div>
+
+      <h1 id="titre-raisons" tabindex="-1">Préparer un appel</h1>
+      <div id="message-raisons" class="message" role="status"></div>
+
+      <!-- Visible seulement si un appel est commencé mais pas terminé. -->
+      <div id="bloc-reprendre" class="bloc-reprendre" hidden>
+        <p class="etiquette">Mon appel en cours</p>
+        <p id="reprendre-raison" class="reprendre-raison"></p>
+        <button type="button" id="bouton-reprendre" class="bouton principal">
+          <svg class="icone" aria-hidden="true" focusable="false"><use href="#icone-notes"></use></svg>
+          <span>Reprendre mon appel</span>
+        </button>
+      </div>
+
+      <h2 id="question-raison">Pourquoi j’appelle ?</h2>
+      <div id="liste-raisons" class="actions liste-raisons" role="group" aria-labelledby="question-raison"></div>
+
+      <div class="actions separation">
+        <button type="button" id="bouton-mes-appels" class="bouton">
+          <svg class="icone" aria-hidden="true" focusable="false"><use href="#icone-liste"></use></svg>
+          <span>Mes appels</span>
+        </button>
+      </div>
+    </section>
+
+
+    <!-- =====================================================
+         PRÉPARER UN APPEL — écran 2 : ma préparation
+         Action principale : « Appeler » (s'il y a un numéro),
+         sinon « Prendre des notes ».
+         Tout ce qui est tapé ici est gardé automatiquement.
+         ===================================================== -->
+    <section id="ecran-preparation" class="ecran" aria-labelledby="titre-preparation" hidden>
+      <div class="barre-haut">
+        <button type="button" class="bouton retour-haut">
+          <svg class="icone" aria-hidden="true" focusable="false"><use href="#icone-retour"></use></svg>
+          <span>Retour</span>
+        </button>
+      </div>
+
+      <!-- Le titre est la raison choisie (rempli par appels.js). -->
+      <h1 id="titre-preparation" tabindex="-1">Ma préparation</h1>
+      <div id="message-preparation" class="message" role="status"></div>
+
+      <fieldset>
+        <legend>La personne que j’appelle</legend>
+        <p class="aide aide-haut">Ces deux cases sont facultatives.</p>
+
+        <div class="champ">
+          <label for="champ-professionnel">Nom du professionnel</label>
+          <input id="champ-professionnel" type="text" enterkeyhint="next"
+                 autocomplete="off" autocapitalize="words" spellcheck="false" maxlength="100">
+        </div>
+
+        <div class="champ">
+          <label for="champ-numero">Numéro de téléphone</label>
+          <span id="aide-numero" class="aide">Exemple : 01 00 00 00 00</span>
+          <input id="champ-numero" type="tel" enterkeyhint="done"
+                 autocomplete="off" maxlength="25"
+                 aria-describedby="aide-numero erreur-numero">
+          <p id="erreur-numero" class="erreur-champ" hidden></p>
+        </div>
+      </fieldset>
+
+      <section class="bloc" aria-labelledby="titre-phrase">
+        <h2 id="titre-phrase">Ma phrase pour commencer</h2>
+        <p id="preparation-phrase" class="phrase"></p>
+        <button type="button" id="bouton-ecouter-phrase" class="bouton">
+          <svg class="icone" aria-hidden="true" focusable="false"><use href="#icone-ecouter"></use></svg>
+          <span>Écouter</span>
+        </button>
+      </section>
+
+      <fieldset class="bloc">
+        <legend>Mes questions</legend>
+        <p class="aide aide-haut">Touchez une question pour la cocher. Les questions cochées s’affichent pendant l’appel.</p>
+        <!-- Les grandes cases à cocher sont créées par appels.js. -->
+        <div id="liste-questions"></div>
+        <p id="aucune-question" class="explication" hidden>
+          Pas encore de question. Touchez « Modifier la phrase et les questions » pour en écrire.
+        </p>
+      </fieldset>
+
+      <div class="actions">
+        <button type="button" id="bouton-modifier-textes" class="bouton">
+          <svg class="icone" aria-hidden="true" focusable="false"><use href="#icone-modifier"></use></svg>
+          <span>Modifier la phrase et les questions</span>
+        </button>
+      </div>
+
+      <div class="actions separation">
+        <!-- « Appeler » : visible seulement si un numéro est rempli.
+             Le lien « tel: » ouvre l'application Téléphone, et l'application passe aux notes. -->
+        <a id="bouton-appeler-pro" class="bouton principal" hidden>
+          <svg class="icone" aria-hidden="true" focusable="false"><use href="#icone-telephone"></use></svg>
+          <span>Appeler</span>
+        </a>
+        <!-- Pour un appel passé autrement (avec le téléphone, ou quand on me rappelle). -->
+        <button type="button" id="bouton-prendre-notes" class="bouton principal">
+          <svg class="icone" aria-hidden="true" focusable="false"><use href="#icone-notes"></use></svg>
+          <span>Prendre des notes</span>
+        </button>
+      </div>
+    </section>
+
+
+    <!-- =====================================================
+         PRÉPARER UN APPEL — modifier la phrase et les questions
+         Le texte modifié est mémorisé pour cette raison d'appel.
+         Action principale : « Enregistrer ».
+         ===================================================== -->
+    <section id="ecran-modele" class="ecran" aria-labelledby="titre-modele" hidden>
+      <div class="barre-haut">
+        <button type="button" class="bouton retour-haut">
+          <svg class="icone" aria-hidden="true" focusable="false"><use href="#icone-retour"></use></svg>
+          <span>Retour</span>
+        </button>
+      </div>
+
+      <h1 id="titre-modele" tabindex="-1">Ma phrase et mes questions</h1>
+      <p id="modele-raison" class="sous-titre"></p>
+      <p id="explication-autre" class="explication" hidden>
+        Écrivez la raison de votre appel à la fin de la phrase. Puis écrivez vos questions.
+      </p>
+      <div id="message-modele" class="message" role="status"></div>
+
+      <form id="formulaire-modele" novalidate>
+        <p class="aide aide-formulaire">
+          Pour dicter : touchez une case, puis le micro du clavier.
+          Une case vide reprend le texte proposé au départ.
+        </p>
+
+        <div class="champ">
+          <label for="champ-phrase">Ma phrase pour commencer</label>
+          <textarea id="champ-phrase" name="phrase" rows="5"
+                    autocapitalize="sentences" maxlength="600"></textarea>
+          <button type="button" class="bouton bouton-effacer" data-effacer="champ-phrase">
+            <span>Effacer<span class="visuellement-cache"> la phrase</span></span>
+          </button>
+        </div>
+
+        <fieldset>
+          <legend>Mes trois questions</legend>
+
+          <div class="champ">
+            <label for="champ-question-1">Question 1</label>
+            <textarea id="champ-question-1" name="question1" rows="2" class="court"
+                      autocapitalize="sentences" maxlength="300"></textarea>
+            <button type="button" class="bouton bouton-effacer" data-effacer="champ-question-1">
+              <span>Effacer<span class="visuellement-cache"> la question 1</span></span>
+            </button>
+          </div>
+
+          <div class="champ">
+            <label for="champ-question-2">Question 2</label>
+            <textarea id="champ-question-2" name="question2" rows="2" class="court"
+                      autocapitalize="sentences" maxlength="300"></textarea>
+            <button type="button" class="bouton bouton-effacer" data-effacer="champ-question-2">
+              <span>Effacer<span class="visuellement-cache"> la question 2</span></span>
+            </button>
+          </div>
+
+          <div class="champ">
+            <label for="champ-question-3">Question 3</label>
+            <textarea id="champ-question-3" name="question3" rows="2" class="court"
+                      autocapitalize="sentences" maxlength="300"></textarea>
+            <button type="button" class="bouton bouton-effacer" data-effacer="champ-question-3">
+              <span>Effacer<span class="visuellement-cache"> la question 3</span></span>
+            </button>
+          </div>
+        </fieldset>
+
+        <div class="actions">
+          <!-- Action principale -->
+          <button type="submit" class="bouton principal">
+            <svg class="icone" aria-hidden="true" focusable="false"><use href="#icone-valider"></use></svg>
+            <span>Enregistrer</span>
+          </button>
+          <button type="button" id="bouton-annuler-modele" class="bouton">
+            <svg class="icone" aria-hidden="true" focusable="false"><use href="#icone-fermer"></use></svg>
+            <span>Annuler</span>
+          </button>
+        </div>
+      </form>
+    </section>
+
+
+    <!-- =====================================================
+         PRÉPARER UN APPEL — écran 3 : pendant et après l'appel
+         Les notes sont gardées à chaque lettre tapée ou dictée.
+         Action principale : « Terminer ».
+         ===================================================== -->
+    <section id="ecran-notes" class="ecran" aria-labelledby="titre-notes" hidden>
+      <div class="barre-haut">
+        <button type="button" class="bouton retour-haut">
+          <svg class="icone" aria-hidden="true" focusable="false"><use href="#icone-retour"></use></svg>
+          <span>Retour</span>
+        </button>
+      </div>
+
+      <h1 id="titre-notes" tabindex="-1">Pendant l’appel</h1>
+      <div id="message-notes" class="message" role="status"></div>
+
+      <!-- Aide-mémoire : la phrase pour commencer et les questions cochées. -->
+      <div class="aide-memoire">
+        <p class="etiquette">Pour commencer, je dis :</p>
+        <p id="notes-phrase" class="phrase"></p>
+        <div id="notes-bloc-questions">
+          <p class="etiquette">Mes questions :</p>
+          <ul id="notes-questions" class="liste-questions"></ul>
+        </div>
+      </div>
+
+      <div class="champ">
+        <label for="champ-notes">Mes notes</label>
+        <span id="aide-notes" class="aide">
+          Touchez la case, puis le micro du clavier pour dicter. Tout est gardé automatiquement.
+        </span>
+        <textarea id="champ-notes" rows="8" autocapitalize="sentences" maxlength="10000"
+                  aria-describedby="aide-notes"></textarea>
+      </div>
+
+      <div class="actions">
+        <!-- Action principale -->
+        <button type="button" id="bouton-terminer" class="bouton principal">
+          <svg class="icone" aria-hidden="true" focusable="false"><use href="#icone-valider"></use></svg>
+          <span>Terminer</span>
+        </button>
+      </div>
+    </section>
+
+
+    <!-- =====================================================
+         PRÉPARER UN APPEL — écran 4 : récapitulatif
+         La date et l'heure sont ajoutées automatiquement.
+         Action principale : « Enregistrer ».
+         ===================================================== -->
+    <section id="ecran-recap" class="ecran" aria-labelledby="titre-recap" hidden>
+      <div class="barre-haut">
+        <button type="button" class="bouton retour-haut">
+          <svg class="icone" aria-hidden="true" focusable="false"><use href="#icone-retour"></use></svg>
+          <span>Retour</span>
+        </button>
+      </div>
+
+      <h1 id="titre-recap" tabindex="-1">Récapitulatif</h1>
+      <div id="message-recap" class="message" role="status"></div>
+
+      <div class="recap-infos">
+        <p class="etiquette">Date de l’appel</p>
+        <p id="recap-date" class="valeur-recap"></p>
+        <p class="etiquette">Raison de l’appel</p>
+        <p id="recap-raison" class="valeur-recap"></p>
+        <div id="recap-bloc-notes">
+          <p class="etiquette">Mes notes</p>
+          <p id="recap-notes" class="texte-appel"></p>
+        </div>
+      </div>
+
+      <form id="formulaire-recap" novalidate>
+        <div class="champ">
+          <label for="champ-avec-qui">Avec qui ai-je parlé ?</label>
+          <input id="champ-avec-qui" type="text" enterkeyhint="next"
+                 autocomplete="off" autocapitalize="words" spellcheck="false" maxlength="100">
+        </div>
+
+        <div class="champ">
+          <label for="champ-decision">Ce qui a été décidé</label>
+          <textarea id="champ-decision" rows="5" autocapitalize="sentences" maxlength="2000"></textarea>
+        </div>
+
+        <div class="actions">
+          <!-- Action principale -->
+          <button type="submit" class="bouton principal">
+            <svg class="icone" aria-hidden="true" focusable="false"><use href="#icone-valider"></use></svg>
+            <span>Enregistrer</span>
+          </button>
+        </div>
+      </form>
+    </section>
+
+
+    <!-- =====================================================
+         MES APPELS : les 10 derniers appels, en lecture seule.
+         Les appels plus anciens restent gardés dans le téléphone.
+         ===================================================== -->
+    <section id="ecran-appels" class="ecran" aria-labelledby="titre-appels" hidden>
+      <div class="barre-haut">
+        <button type="button" class="bouton retour-haut">
+          <svg class="icone" aria-hidden="true" focusable="false"><use href="#icone-retour"></use></svg>
+          <span>Retour</span>
+        </button>
+      </div>
+
+      <h1 id="titre-appels" tabindex="-1">Mes appels</h1>
+      <div id="message-appels" class="message" role="status"></div>
+
+      <p id="explication-appels" class="explication">Mes derniers appels, du plus récent au plus ancien.</p>
+      <p id="aucun-appel" class="explication" hidden>Aucun appel enregistré pour le moment.</p>
+      <!-- role="list" : la liste reste annoncée comme une liste par TalkBack. -->
+      <ol id="liste-appels" class="liste-appels" role="list"></ol>
     </section>
 
   </main>

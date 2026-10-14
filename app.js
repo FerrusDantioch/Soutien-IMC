@@ -3,10 +3,15 @@
 
    Ce fichier :
    - lit et enregistre la fiche dans le téléphone (localStorage) ;
-   - affiche le bon écran (fiche, formulaire, réglages, plein écran) ;
+   - affiche le bon écran, et tient à jour le chemin parcouru
+     (bouton « Retour » de l'application et bouton « retour » d'Android) ;
    - lit la fiche à voix haute (synthèse vocale du navigateur) ;
    - mémorise la taille du texte et la vitesse de la voix ;
    - prépare le fonctionnement hors ligne (service worker).
+
+   Deux autres fichiers complètent l'application et utilisent ses outils :
+   - appels.js : le module « Préparer un appel » ;
+   - donnees.js : l'écran « Mes données » (sauvegarde et restauration).
 
    Rien n'est envoyé sur internet : tout reste dans le téléphone.
    ============================================================= */
@@ -42,7 +47,29 @@ const ECRANS = {
   accueil: 'ecran-accueil',
   modifier: 'ecran-modifier',
   reglages: 'ecran-reglages',
-  plein: 'ecran-plein'
+  plein: 'ecran-plein',
+  donnees: 'ecran-donnees',
+  raisons: 'ecran-raisons',
+  preparation: 'ecran-preparation',
+  modele: 'ecran-modele',
+  notes: 'ecran-notes',
+  recap: 'ecran-recap',
+  appels: 'ecran-appels'
+};
+
+// Le chemin entre les écrans : chaque écran → l'écran où ramène le bouton « Retour ».
+// Exemple : Pendant l'appel → Ma préparation → Préparer un appel → Ma fiche.
+const PARENTS = {
+  modifier: 'accueil',
+  reglages: 'accueil',
+  plein: 'accueil',
+  donnees: 'reglages',
+  raisons: 'accueil',
+  preparation: 'raisons',
+  modele: 'preparation',
+  notes: 'preparation',
+  recap: 'notes',
+  appels: 'raisons'
 };
 
 
@@ -52,8 +79,11 @@ let fiche = null;                 // la fiche enregistrée (ou null si elle est 
 let reglages = { vitesse: VITESSE_PAR_DEFAUT, taille: TAILLE_PAR_DEFAUT };
 let ecranActuel = null;           // l'écran visible en ce moment
 let dernierAppui = 0;             // heure du dernier appui accepté (anti-rebond)
+let appuiEnCours = null;          // l'élément touché pendant l'appui en cours (anti-rebond)
+let quandOnArrive = null;         // ce qu'il reste à faire après un recul dans l'historique
 let voixFrancaise = null;         // la voix française choisie
 let enLecture = false;            // la voix est-elle en train de lire ?
+let boutonLecture = null;         // le bouton « Écouter » qui a lancé la lecture
 let numeroLecture = 0;            // augmente à chaque lecture (pour ignorer les anciennes)
 let phrasesEnCours = [];          // garde les phrases en mémoire pendant la lecture
 let surveillanceLecture = null;   // minuterie qui vérifie la fin de la lecture
@@ -134,6 +164,22 @@ function adresseSansDiese() {
   return location.pathname + location.search;
 }
 
+// Date et heure en toutes lettres : « mardi 14 octobre 2026, à 15 h 30 ».
+function dateEnToutesLettres(texteDate) {
+  const date = new Date(texteDate);
+  if (isNaN(date.getTime())) {
+    return '';
+  }
+  const jour = date.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  const heure = date.getHours() + ' h ' + String(date.getMinutes()).padStart(2, '0');
+  return jour + ', à ' + heure;
+}
+
+// Met une majuscule au début : « mardi » → « Mardi ».
+function majuscule(texte) {
+  return texte.charAt(0).toUpperCase() + texte.slice(1);
+}
+
 
 /* ---------- 4. Le numéro de téléphone ---------- */
 
@@ -206,8 +252,9 @@ function effacerMessage(idZone) {
   zone.replaceChildren();
 }
 
+// Chaque écran a sa zone de message : « message-accueil », « message-reglages »…
 function effacerTousLesMessages() {
-  ['message-accueil', 'message-modifier', 'message-reglages'].forEach(effacerMessage);
+  document.querySelectorAll('.message[role="status"]').forEach((zone) => effacerMessage(zone.id));
 }
 
 // Message affiché juste après un changement d'écran.
@@ -216,9 +263,10 @@ function annoncerApresChangement(idZone, texte, type) {
   setTimeout(() => afficherMessage(idZone, texte, type), 150);
 }
 
-// Zone de message de l'écran visible (pour les problèmes de voix).
+// Zone de message de l'écran visible (pour les problèmes de voix, par exemple).
 function zoneDeMessageActuelle() {
-  return ecranActuel === 'reglages' ? 'message-reglages' : 'message-accueil';
+  const zone = element('message-' + ecranActuel);
+  return zone ? zone.id : 'message-accueil';
 }
 
 
@@ -254,14 +302,44 @@ function afficherEcran(nom, options = {}) {
 }
 
 // Prépare le contenu d'un écran, puis l'affiche.
-function preparerEtAfficher(nom) {
-  if (nom === 'modifier') {
-    remplirFormulaire(false);
+// Les fonctions des écrans d'appel sont dans appels.js, celle de « Mes données » dans donnees.js.
+function preparerEtAfficher(nom, options = {}) {
+  switch (nom) {
+    case 'accueil':
+      montrerAccueil(options);
+      return;
+    case 'modifier':
+      remplirFormulaire(false);
+      break;
+    case 'plein':
+      afficherFiche();
+      break;
+    case 'reglages':
+      afficherVersion();
+      break;
+    case 'donnees':
+      afficherMesDonnees();       // donnees.js
+      break;
+    case 'raisons':
+      afficherRaisons();          // appels.js
+      break;
+    case 'preparation':
+      afficherPreparation();      // appels.js
+      break;
+    case 'modele':
+      remplirModele();            // appels.js
+      break;
+    case 'notes':
+      afficherNotes();            // appels.js
+      break;
+    case 'recap':
+      afficherRecap();            // appels.js
+      break;
+    case 'appels':
+      afficherMesAppels();        // appels.js
+      break;
   }
-  if (nom === 'plein') {
-    afficherFiche();
-  }
-  afficherEcran(nom);
+  afficherEcran(nom, options);
   if (nom === 'plein') {
     garderEcranAllume();
   }
@@ -278,37 +356,132 @@ function montrerAccueil(options = {}) {
   }
 }
 
-// Ouvre un écran secondaire (réglages, formulaire, plein écran).
-// On l'inscrit dans l'historique : le bouton « retour » d'Android ramène alors à la fiche.
-function ouvrirEcran(nom) {
-  const methode = (ecranActuel === 'accueil') ? 'pushState' : 'replaceState';
-  changerAdresse(methode, { ecran: nom }, '#' + nom);
-  preparerEtAfficher(nom);
+// Le « niveau » d'un écran sur le chemin : 0 pour la fiche, 1 pour les écrans
+// ouverts depuis la fiche, 2 pour les écrans ouverts depuis ceux-ci, etc.
+function niveau(nom) {
+  return PARENTS[nom] ? 1 + niveau(PARENTS[nom]) : 0;
 }
 
-// Revient à la fiche (boutons « Retour », « Annuler », « Fermer »).
-function revenirALaFiche() {
-  const ecranDansLHistorique = Boolean(history.state && history.state.ecran);
-  montrerAccueil();
-  if (ecranDansLHistorique) {
-    history.back();      // retire l'écran secondaire de l'historique
-  } else if (location.hash) {
-    changerAdresse('replaceState', null, adresseSansDiese());
+// Les écrans à traverser pour aller de « depart » à « arrivee » en avançant sur le chemin.
+// Exemple : de « raisons » à « modele » → ['preparation', 'modele'].
+// Renvoie null si « arrivee » n'est pas plus loin sur le même chemin.
+function cheminDepuis(depart, arrivee) {
+  const chemin = [];
+  let ecran = arrivee;
+  while (ecran && ecran !== depart) {
+    chemin.unshift(ecran);
+    ecran = PARENTS[ecran];
+  }
+  return ecran === depart ? chemin : null;
+}
+
+// Ce qu'on inscrit dans l'historique pour un écran, et l'adresse de la page.
+// « profondeur » : le nombre d'étapes de l'application avant celle-ci dans l'historique.
+function etatDe(nom, profondeur) {
+  return nom === 'accueil' ? null : { ecran: nom, profondeur: profondeur };
+}
+
+function adresseDe(nom) {
+  return nom === 'accueil' ? adresseSansDiese() : '#' + nom;
+}
+
+// Inscrit un écran à l'étape actuelle de l'historique (sans en ajouter).
+function inscrireLEcran(nom) {
+  const etat = history.state || {};
+  if ((etat.ecran || 'accueil') !== nom) {
+    changerAdresse('replaceState', etatDe(nom, Number(etat.profondeur) || 0), adresseDe(nom));
   }
 }
 
-// Bouton « retour » du téléphone (ou du navigateur).
-function quandOnReculeDansLHistorique() {
-  const nom = history.state && history.state.ecran;
-  if (nom && ECRANS[nom] && !ficheEstVide(fiche)) {
-    preparerEtAfficher(nom);
+// Inscrit tout le chemin depuis la fiche jusqu'à un écran.
+// Exemple pour « notes » : Ma fiche → Préparer un appel → Ma préparation → Pendant l'appel.
+function inscrireLeChemin(nom) {
+  changerAdresse('replaceState', null, adresseSansDiese());
+  cheminDepuis('accueil', nom).forEach((ecran, rang) => {
+    changerAdresse('pushState', etatDe(ecran, rang + 1), adresseDe(ecran));
+  });
+}
+
+// Ouvre un écran, et tient l'historique du navigateur à jour :
+// le bouton « retour » d'Android suit alors le même chemin que le bouton « Retour ».
+//  - écran plus loin sur le chemin (ex. : fiche → réglages) : on ajoute une étape ;
+//  - écran en arrière ou à côté (ex. : réglages → fiche) : on recule dans l'historique,
+//    puis on inscrit le bon écran à l'étape d'arrivée.
+function ouvrirEcran(nom, options = {}) {
+  const depart = ecranActuel;
+  const profondeur = (history.state && Number(history.state.profondeur)) || 0;
+
+  preparerEtAfficher(nom, options);
+
+  const etapes = cheminDepuis(depart, nom);
+  if (etapes) {
+    etapes.forEach((ecran, rang) => {
+      changerAdresse('pushState', etatDe(ecran, profondeur + rang + 1), adresseDe(ecran));
+    });
     return;
   }
-  const quittaitLeFormulaire = (ecranActuel === 'modifier') && !ficheEstVide(fiche);
-  montrerAccueil();
-  if (quittaitLeFormulaire) {
+
+  // On ne recule jamais plus loin que les étapes de l'application
+  // (sinon, on sortirait de l'application).
+  const recul = Math.min(niveau(depart) - niveau(nom), profondeur);
+  if (recul > 0) {
+    quandOnArrive = () => inscrireLEcran(nom);     // voir quandOnReculeDansLHistorique()
+    history.go(-recul);
+  } else {
+    inscrireLEcran(nom);
+  }
+}
+
+// Revient à la fiche (boutons « Retour à ma fiche », « Annuler », « Fermer »).
+function revenirALaFiche() {
+  ouvrirEcran('accueil');
+}
+
+// Bouton « Retour » en haut des écrans : ramène à l'écran précédent sur le chemin.
+function retourEnArriere() {
+  const quitte = ecranActuel;
+  const arrivee = PARENTS[quitte] || 'accueil';
+  ouvrirEcran(arrivee);
+  annoncerSiAnnule(quitte, arrivee);
+}
+
+// Quitter un formulaire sans enregistrer : on rassure, rien n'a changé.
+function annoncerSiAnnule(quitte, arrivee) {
+  if (quitte === 'modifier' && arrivee === 'accueil' && !ficheEstVide(fiche)) {
     annoncerApresChangement('message-accueil', 'Annulé. Votre fiche n’a pas changé.', 'info');
   }
+  if (quitte === 'modele' && arrivee === 'preparation') {
+    annoncerApresChangement('message-preparation', 'Annulé. Votre phrase et vos questions n’ont pas changé.', 'info');
+  }
+}
+
+// L'historique du navigateur a changé : bouton « retour » du téléphone,
+// ou recul demandé par ouvrirEcran().
+function quandOnReculeDansLHistorique() {
+  const etat = history.state || {};
+  const profondeur = Number(etat.profondeur) || 0;
+
+  // 1. Recul demandé par l'application : le bon écran est déjà affiché,
+  //    il reste seulement à mettre l'historique à jour.
+  if (quandOnArrive) {
+    const aFaire = quandOnArrive;
+    quandOnArrive = null;
+    aFaire();
+    return;
+  }
+
+  // 2. Bouton « retour » du téléphone : on affiche l'écran inscrit dans l'historique.
+  let nom = ECRANS[etat.ecran] ? etat.ecran : 'accueil';
+  if (ficheEstVide(fiche)) {
+    nom = 'accueil';            // fiche vide : on reste sur le formulaire « Bienvenue »
+  }
+  nom = ecranPossible(nom);     // ex. : plus d'appel en cours → « Préparer un appel » (appels.js)
+  if (nom !== (etat.ecran || 'accueil')) {
+    changerAdresse('replaceState', etatDe(nom, profondeur), adresseDe(nom));
+  }
+  const quitte = ecranActuel;
+  preparerEtAfficher(nom);
+  annoncerSiAnnule(quitte, nom);
 }
 
 
@@ -568,10 +741,13 @@ function phrasesDeLaFiche(f) {
 }
 
 // Change le bouton « Écouter » en « Arrêter la lecture », et inversement.
+// (Le bouton concerné est celui qui a lancé la lecture : fiche, ou phrase d'un appel.)
 function marquerLecture(enCours) {
   enLecture = enCours;
-  element('bouton-ecouter-texte').textContent = enCours ? 'Arrêter la lecture' : 'Écouter';
-  element('bouton-ecouter-icone').setAttribute('href', enCours ? '#icone-arreter' : '#icone-ecouter');
+  if (boutonLecture) {
+    boutonLecture.querySelector('span').textContent = enCours ? 'Arrêter la lecture' : 'Écouter';
+    boutonLecture.querySelector('use').setAttribute('href', enCours ? '#icone-arreter' : '#icone-ecouter');
+  }
 }
 
 function finDeLecture() {
@@ -579,6 +755,7 @@ function finDeLecture() {
   surveillanceLecture = null;
   phrasesEnCours = [];
   marquerLecture(false);
+  boutonLecture = null;
 }
 
 function arreterLecture() {
@@ -594,7 +771,8 @@ function signalerProblemeVoix(texte, type) {
 }
 
 // Lit une liste de phrases à voix haute, à la vitesse choisie.
-function parler(phrases) {
+// bouton (facultatif) : le bouton « Écouter » qui devient « Arrêter la lecture » pendant la lecture.
+function parler(phrases, bouton) {
   if (!syntheseDisponible()) {
     signalerProblemeVoix('La lecture à voix haute n’est pas possible sur cet appareil.');
     return;
@@ -609,6 +787,7 @@ function parler(phrases) {
 
   const numero = numeroLecture;
   const debut = Date.now();
+  boutonLecture = bouton || null;
   marquerLecture(true);
 
   // Petite pause : certains navigateurs ignorent une lecture lancée juste après un arrêt.
@@ -656,12 +835,12 @@ function parler(phrases) {
   }, 150);
 }
 
-// Bouton « Écouter » / « Arrêter la lecture ».
+// Bouton « Écouter » / « Arrêter la lecture » de la fiche.
 function basculerLecture() {
   if (enLecture) {
     arreterLecture();
   } else {
-    parler(phrasesDeLaFiche(fiche || {}));
+    parler(phrasesDeLaFiche(fiche || {}), element('bouton-ecouter'));
   }
 }
 
@@ -726,9 +905,17 @@ function quandLaPageRedevientVisible() {
 /* ---------- 13. Les boutons ---------- */
 
 // Anti-rebond : un appui trop proche du précédent est ignoré.
+// Cela vaut pour les boutons, les liens et les grandes cases à cocher
+// (un double appui involontaire cocherait puis décocherait la case).
 // « true » à la fin : cette vérification passe avant toutes les autres.
 function filtrerLesAppuisTropRapides(evenement) {
-  if (!evenement.target.closest('button, a')) {
+  const cible = evenement.target.closest('button, a, .case-a-cocher');
+  if (!cible) {
+    return;
+  }
+  // Toucher le texte d'une case à cocher produit deux « clics » à la suite
+  // (le texte, puis la case) : c'est le même appui, on laisse passer le second.
+  if (cible === appuiEnCours) {
     return;
   }
   const maintenant = Date.now();
@@ -738,10 +925,17 @@ function filtrerLesAppuisTropRapides(evenement) {
     return;
   }
   dernierAppui = maintenant;
+  appuiEnCours = cible;
+  setTimeout(() => { appuiEnCours = null; }, 0);
 }
 
 function brancherLesBoutons() {
   document.addEventListener('click', filtrerLesAppuisTropRapides, true);
+
+  // Les boutons « Retour » en haut des écrans
+  document.querySelectorAll('.retour-haut').forEach((bouton) => {
+    bouton.addEventListener('click', retourEnArriere);
+  });
 
   element('bouton-ecouter').addEventListener('click', basculerLecture);
   element('bouton-plein-ecran').addEventListener('click', ouvrirPleinEcran);
@@ -791,6 +985,26 @@ function protegerLesDonnees() {
   }
 }
 
+// Affiche la version installée, en bas des réglages (pour vérifier une mise à jour).
+// Elle est lue dans le nom de la copie hors ligne : « soutien-imc-v2 » → « v2 ».
+function afficherVersion() {
+  const zone = element('version');
+  try {
+    caches.keys().then((noms) => {
+      const numeros = noms
+        .filter((nom) => nom.startsWith('soutien-imc-v'))
+        .map((nom) => parseInt(nom.slice('soutien-imc-v'.length), 10))
+        .filter((numero) => numero > 0);
+      if (numeros.length > 0) {
+        zone.textContent = 'Version installée : v' + Math.max(...numeros) + '.';
+        zone.hidden = false;
+      }
+    }).catch(() => {});
+  } catch (erreur) {
+    // Pas de copie hors ligne (page ouverte depuis un fichier) : rien à afficher.
+  }
+}
+
 
 /* ---------- 15. Le démarrage ---------- */
 
@@ -811,31 +1025,52 @@ function demarrer() {
   const ficheMemorisee = lireStockage(CLE_FICHE);
   fiche = (ficheMemorisee && typeof ficheMemorisee === 'object') ? ficheMemorisee : null;
 
-  // 3. Les boutons
-  brancherLesBoutons();
+  // 3. Les appels : textes modifiés, appels enregistrés, appel en cours (appels.js)
+  chargerLesAppels();
 
-  // 4. La voix (la liste des voix arrive parfois un peu après l'ouverture)
+  // 4. Les boutons
+  brancherLesBoutons();
+  brancherLesBoutonsDesAppels();     // appels.js
+  brancherLesBoutonsDesDonnees();    // donnees.js
+
+  // 5. La voix (la liste des voix arrive parfois un peu après l'ouverture)
   if (syntheseDisponible()) {
     choisirVoix();
     window.speechSynthesis.addEventListener('voiceschanged', choisirVoix);
   }
 
-  // 5. Le premier écran : la fiche, ou le formulaire si la fiche est vide
-  if (location.hash) {
-    changerAdresse('replaceState', null, adresseSansDiese());
+  // 6. Le premier écran : la fiche, ou le formulaire si la fiche est vide.
+  //    Exception : si le téléphone a fermé l'application pendant un appel,
+  //    on revient directement à cet appel (rien n'est perdu).
+  const reprise = ficheEstVide(fiche) ? null : ecranAReprendre();   // appels.js
+  const premierEcran = reprise || 'accueil';
+  preparerEtAfficher(premierEcran, { focus: false });
+  if (reprise) {
+    annoncerApresChangement('message-' + reprise, 'Vous revenez à votre appel. Rien n’est perdu.', 'info');
   }
-  montrerAccueil({ focus: false });
 
-  // 6. Avertissement si le navigateur refuse de garder les données
+  //    On inscrit le chemin depuis la fiche : le bouton « retour » d'Android
+  //    remontera ce chemin étape par étape. Après un rechargement de la page,
+  //    l'historique peut garder des étapes plus anciennes : on revient d'abord à la première.
+  const etapesAvant = (history.state && Number(history.state.profondeur)) || 0;
+  if (etapesAvant > 0) {
+    quandOnArrive = () => inscrireLeChemin(premierEcran);
+    history.go(-etapesAvant);
+  } else {
+    inscrireLeChemin(premierEcran);
+  }
+
+  // 7. Avertissement si le navigateur refuse de garder les données
   if (!stockageDisponible()) {
-    afficherMessage(ecranActuel === 'modifier' ? 'message-modifier' : 'message-accueil',
+    afficherMessage(zoneDeMessageActuelle(),
       'Attention : ce navigateur ne peut pas garder la fiche. Ouvrez l’application dans Chrome, sans navigation privée.',
       'erreur');
   }
 
-  // 7. Hors ligne et protection des données
+  // 8. Hors ligne et protection des données
   preparerHorsLigne();
   protegerLesDonnees();
 }
 
-demarrer();
+// On démarre quand les trois fichiers (app.js, appels.js, donnees.js) sont lus.
+document.addEventListener('DOMContentLoaded', demarrer);

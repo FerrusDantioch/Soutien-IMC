@@ -12,6 +12,10 @@ desktop.ini
 # Archives (le .zip de livraison ne doit pas être publié)
 *.zip
 
+# Fichiers de sauvegarde de l'application (écran « Mes données ») :
+# ils contiennent des données personnelles, ils ne doivent jamais être publiés.
+ma-fiche-sauvegarde-*.json
+
 # Journaux et fichiers temporaires
 *.log
 *.tmp

@@ -15,7 +15,7 @@
 // IMPORTANT : à chaque modification d'un fichier de l'application,
 // augmentez ce numéro (v1 → v2 → v3…). Sinon, les téléphones
 // continueront d'utiliser l'ancienne copie.
-const VERSION = 'v1';
+const VERSION = 'v2';
 
 // Le nom de la copie commence par « soutien-imc- » pour ne jamais
 // toucher aux copies d'autres sites hébergés à la même adresse.
@@ -28,6 +28,8 @@ const FICHIERS = [
   './index.html',
   './style.css',
   './app.js',
+  './appels.js',
+  './donnees.js',
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png',

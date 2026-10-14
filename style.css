@@ -93,6 +93,8 @@ html {
      Le zoom à deux doigts reste possible. */
   touch-action: manipulation;
   background: var(--fond);
+  /* Quand la page défile jusqu'à une case, elle ne se cache pas sous la barre « Retour ». */
+  scroll-padding-top: calc(max(64px, 3rem) + 2.5rem);
 }
 
 body {
@@ -101,6 +103,9 @@ body {
   color: var(--texte);
   font-family: system-ui, Roboto, "Segoe UI", Arial, sans-serif;
   line-height: 1.5;
+  /* Avec un texte très agrandi, un mot trop long pour la ligne est coupé
+     plutôt que de dépasser de l'écran. */
+  overflow-wrap: break-word;
 }
 
 main {
@@ -277,6 +282,17 @@ p {
   border-color: var(--primaire-appui);
 }
 
+/* Un grand bouton, sans être l'action principale (« Préparer un appel »). */
+.bouton.grand {
+  min-height: max(80px, 3.6rem);
+  font-size: 1.3rem;
+  background: var(--fond-conjoint);
+}
+
+.bouton.grand:active {
+  background: var(--fond-appui);
+}
+
 /* Contour bien visible autour de l'élément actif (clavier, TalkBack). */
 .bouton:focus-visible,
 input:focus-visible,
@@ -289,6 +305,13 @@ textarea:focus-visible {
   width: 1.5em;
   height: 1.5em;
   flex: none;
+}
+
+/* Le texte d'un bouton ou d'une case à cocher peut passer à la ligne
+   au lieu d'élargir le bouton (utile avec un texte très agrandi). */
+.bouton > span,
+.case-a-cocher > span {
+  min-width: 0;
 }
 
 /* Les lettres « A− » et « A+ » */
@@ -323,6 +346,11 @@ textarea:focus-visible {
 
 .message .icone {
   margin-top: 0.05em;
+}
+
+/* Le texte du message passe à la ligne au lieu de dépasser de l'écran. */
+.message > span {
+  min-width: 0;
 }
 
 .message.succes {
@@ -405,6 +433,8 @@ textarea {
   min-height: 8em;
   line-height: 1.4;
   resize: vertical;
+  /* La case grandit avec le texte : pas besoin de la faire défiler du doigt. */
+  field-sizing: content;
 }
 
 /* Champ en erreur : bordure rouge plus épaisse + message écrit dessous */
@@ -498,4 +528,264 @@ textarea {
 .bouton.bouton-fermer {
   min-height: max(88px, 3.8rem);
   font-size: 1.6rem;
+}
+
+
+/* ---------- 10. La barre « Retour » (en haut des écrans secondaires) ---------- */
+
+/* Toujours au même endroit : collée en haut de l'écran, même quand la page défile. */
+.barre-haut {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  margin: -16px 0 1rem;         /* annule la marge du haut de la page */
+  padding: 12px 0;
+  background: var(--fond);
+  border-bottom: 3px solid var(--bordure);
+}
+
+.bouton.retour-haut {
+  width: auto;
+  max-width: 100%;
+  padding: 0.5rem 1rem;
+}
+
+.version {
+  margin-top: 1.5rem;
+  font-size: 1rem;
+  color: var(--texte-doux);
+}
+
+
+/* ---------- 11. Préparer un appel ---------- */
+
+.sous-titre {
+  margin: -0.5rem 0 1rem;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--texte-doux);
+}
+
+/* Un bloc de l'écran, séparé du précédent */
+.bloc {
+  margin-top: 1.5rem;
+}
+
+/* Une ligne séparatrice au-dessus d'un groupe de boutons */
+.separation {
+  margin-top: 2rem;
+  padding-top: 1.75rem;
+  border-top: 3px solid var(--bordure);
+}
+
+.aide.aide-haut {
+  margin: 0.4rem 0 0;
+}
+
+.aide.aide-formulaire {
+  margin: 0 0 0.5rem;
+}
+
+/* « Mon appel en cours » (écran 1) */
+.bloc-reprendre {
+  margin-bottom: 1.5rem;
+  padding: 0.6rem 0.75rem 0.9rem;
+  background: var(--fond-conjoint);
+  border: 3px solid var(--bordure);
+  border-radius: 16px;
+}
+
+.reprendre-raison {
+  margin: 0.2rem 0 0.9rem;
+  font-size: 1.3rem;
+  font-weight: 800;
+}
+
+.liste-raisons {
+  margin-top: 0.75rem;
+}
+
+/* La phrase pour commencer : bien lisible, dans un cadre */
+.phrase {
+  margin: 0.5rem 0 1rem;
+  padding: 0.6rem 0.9rem;
+  font-size: 1.3rem;
+  font-weight: 700;
+  line-height: 1.4;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+  background: var(--fond-conjoint);
+  border: 3px solid var(--bordure);
+  border-radius: 14px;
+}
+
+/* Les grandes cases à cocher : toute la ligne réagit au toucher. */
+.case-a-cocher {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  min-height: max(64px, 3rem);
+  margin: 0;
+  padding: 0.6rem 0.8rem;
+  font-size: 1.15rem;
+  font-weight: 700;
+  line-height: 1.3;
+  background: var(--fond-bouton);
+  border: 3px solid var(--bordure);
+  border-radius: 14px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#liste-questions {
+  margin-top: 1rem;
+}
+
+.case-a-cocher + .case-a-cocher {
+  margin-top: max(16px, 0.8rem);
+}
+
+/* Question cochée : fond bleu pâle, en plus de la coche. */
+.case-a-cocher:has(input:checked) {
+  background: var(--fond-conjoint);
+}
+
+/* La case elle-même, dessinée en grand (2 fois la taille du texte). */
+.case-a-cocher input {
+  appearance: none;
+  -webkit-appearance: none;
+  display: grid;
+  place-content: center;
+  flex: none;
+  width: 2rem;
+  height: 2rem;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  background: var(--fond-champ);
+  border: 3px solid var(--bordure);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+/* La coche : un « L » retourné, visible seulement quand la case est cochée. */
+.case-a-cocher input::before {
+  content: "";
+  width: 0.5rem;
+  height: 0.95rem;
+  margin-top: -0.2rem;
+  border: solid var(--sur-primaire);
+  border-width: 0 0.22rem 0.22rem 0;
+  transform: rotate(45deg);
+  visibility: hidden;
+}
+
+.case-a-cocher input:checked {
+  background: var(--primaire);
+  border-color: var(--primaire);
+}
+
+.case-a-cocher input:checked::before {
+  visibility: visible;
+}
+
+/* Les cases « question » sont plus basses que la case « phrase ». */
+textarea.court {
+  min-height: max(64px, 3.4em);
+}
+
+/* Bouton « Effacer » sous une case : moins large, mais toujours haut de 64 px. */
+.bouton.bouton-effacer {
+  width: auto;
+  max-width: 100%;
+  margin-top: 0.6rem;
+  padding: 0.4rem 1.1rem;
+  font-size: 1.05rem;
+}
+
+/* Aide-mémoire pendant l'appel : la phrase et les questions cochées */
+.aide-memoire {
+  margin-bottom: 1.25rem;
+  padding: 0.6rem 0.9rem 0.8rem;
+  background: var(--fond-conjoint);
+  border: 3px solid var(--bordure);
+  border-radius: 14px;
+}
+
+.aide-memoire .phrase {
+  margin: 0.2rem 0 0.6rem;
+  padding: 0;
+  background: none;
+  border: 0;
+}
+
+.liste-questions {
+  margin: 0.2rem 0 0;
+  padding-left: 1.4em;
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.liste-questions li + li {
+  margin-top: 0.3rem;
+}
+
+/* Récapitulatif */
+.recap-infos .etiquette + p {
+  margin-bottom: 0.75rem;
+}
+
+.valeur-recap {
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.texte-appel {
+  font-size: 1.1rem;
+  white-space: pre-line;        /* garde les retours à la ligne dictés */
+  overflow-wrap: anywhere;
+}
+
+/* Mes appels : une carte par appel */
+.liste-appels {
+  margin: 1rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.carte-appel {
+  padding: 0.6rem 0.9rem 0.9rem;
+  border: 3px solid var(--bordure);
+  border-radius: 14px;
+}
+
+.carte-appel + .carte-appel {
+  margin-top: 1.25rem;
+}
+
+.carte-appel h2 {
+  font-size: 1.2rem;
+}
+
+.carte-appel .etiquette {
+  margin-top: 0.6rem;
+}
+
+
+/* ---------- 12. Mes données ---------- */
+
+.confirmation {
+  padding: 0.75rem 1rem 1rem;
+  background: var(--erreur-fond);
+  border: 4px solid var(--erreur-bord);
+  border-radius: 14px;
+}
+
+.confirmation p {
+  font-size: 1.15rem;
+}
+
+.explication + .explication {
+  margin-top: -0.5rem;
 }
