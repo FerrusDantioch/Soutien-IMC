@@ -10,7 +10,12 @@
     5. Mes données (sauvegarder ou restaurer dans un fichier)
     6. Préparer un appel : choisir la raison, ma préparation, ma phrase
        et mes questions, pendant l'appel (notes), récapitulatif, mes appels
+    7. Aide et À propos
   C'est le fichier app.js qui choisit l'écran à montrer.
+
+  La fiche s'affiche toujours dans cet ordre (accueil et plein écran) :
+  conjoint, ce que je souhaite que l'on sache, informations utiles aux secours,
+  personnes à prévenir, numéros d'urgence.
 
   Tous les chemins sont relatifs (sans « / » au début) pour que l'application
   fonctionne dans un sous-dossier, comme sur GitHub Pages.
@@ -135,6 +140,12 @@
     <symbol id="icone-restaurer" viewBox="0 0 24 24">
       <path d="M12 15V4M7 8.5l5-5 5 5M4 20h16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
     </symbol>
+    <!-- Icône de l'écran « Aide » (un point d'interrogation) -->
+    <symbol id="icone-aide" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="9.5" fill="none" stroke="currentColor" stroke-width="2.4"/>
+      <path d="M9.3 9.4a2.8 2.8 0 0 1 5.5.9c0 1.9-2.8 2.3-2.8 4.1" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
+      <circle cx="12" cy="17.6" r="1.4" fill="currentColor"/>
+    </symbol>
   </svg>
 
   <noscript>
@@ -146,6 +157,8 @@
     <!-- =====================================================
          ÉCRAN 1 : MA FICHE (accueil)
          Action principale : « Écouter ».
+         Les boutons sont en haut : la fiche complète est longue, et on doit
+         pouvoir écouter la fiche ou préparer un appel sans faire défiler l'écran.
          ===================================================== -->
     <section id="ecran-accueil" class="ecran" aria-labelledby="titre-accueil" hidden>
       <!-- Titre lu par TalkBack, mais caché à l'écran (la fiche parle d'elle-même). -->
@@ -154,26 +167,7 @@
       <!-- Zone des messages (ex. : « C'est enregistré »). TalkBack la lit toute seule. -->
       <div id="message-accueil" class="message" role="status"></div>
 
-      <!-- En tête : le conjoint, en très gros caractères -->
-      <div id="accueil-bloc-conjoint" class="bloc-conjoint">
-        <p class="etiquette">Mon conjoint</p>
-        <p id="accueil-conjoint-nom" class="conjoint-nom"></p>
-        <p id="accueil-conjoint-telephone" class="conjoint-telephone"></p>
-      </div>
-
-      <!-- Dessous : la personne et son message -->
-      <div class="bloc-moi">
-        <div id="accueil-bloc-nom">
-          <p class="etiquette">Je m’appelle</p>
-          <p id="accueil-moi-nom" class="moi-nom"></p>
-        </div>
-        <div id="accueil-bloc-message">
-          <p class="etiquette">Ce que je souhaite que l’on sache</p>
-          <p id="accueil-message" class="message-libre"></p>
-        </div>
-      </div>
-
-      <div class="actions">
+      <div class="actions actions-accueil">
         <!-- Action principale -->
         <button type="button" id="bouton-ecouter" class="bouton principal">
           <svg class="icone" aria-hidden="true" focusable="false"><use id="bouton-ecouter-icone" href="#icone-ecouter"></use></svg>
@@ -202,6 +196,70 @@
           <span>Réglages</span>
         </button>
       </div>
+
+      <!-- La fiche, dans l'ordre : conjoint, ce que je souhaite que l'on sache,
+           secours, personnes à prévenir, numéros d'urgence. -->
+
+      <!-- En tête : le conjoint, en très gros caractères -->
+      <div id="accueil-bloc-conjoint" class="bloc-conjoint">
+        <p class="etiquette">Mon conjoint</p>
+        <p id="accueil-conjoint-nom" class="conjoint-nom"></p>
+        <p id="accueil-conjoint-telephone" class="conjoint-telephone"></p>
+      </div>
+
+      <!-- Dessous : la personne et son message -->
+      <div class="bloc-moi">
+        <div id="accueil-bloc-nom">
+          <p class="etiquette">Je m’appelle</p>
+          <p id="accueil-moi-nom" class="moi-nom"></p>
+        </div>
+        <div id="accueil-bloc-message">
+          <p class="etiquette">Ce que je souhaite que l’on sache</p>
+          <p id="accueil-message" class="message-libre"></p>
+        </div>
+      </div>
+
+      <!-- Informations utiles aux secours : seulement les cases remplies (créées par app.js).
+           Le bloc entier est caché si tout est vide. -->
+      <div id="accueil-bloc-secours" class="bloc-fiche">
+        <h2 class="titre-section">Informations utiles aux secours</h2>
+        <div id="accueil-secours" class="carte-fiche"></div>
+      </div>
+
+      <!-- Personnes à prévenir (jusqu'à 3), chacune avec son bouton « Appeler » (créés par app.js). -->
+      <div id="accueil-bloc-personnes" class="bloc-fiche">
+        <h2 class="titre-section">Personnes à prévenir</h2>
+        <div id="accueil-personnes"></div>
+      </div>
+
+      <!-- Numéros d'urgence : toujours affichés, même si la fiche est presque vide.
+           Le lien « tel: » ouvre le téléphone avec le numéro prérempli. Il n'appelle pas tout seul. -->
+      <div class="bloc-fiche">
+        <h2 class="titre-section">Numéros d’urgence</h2>
+        <div class="actions actions-urgence">
+          <a class="bouton urgence" href="tel:15">
+            <svg class="icone" aria-hidden="true" focusable="false"><use href="#icone-telephone"></use></svg>
+            <span>Urgence&nbsp;: 15</span>
+          </a>
+          <a class="bouton urgence" href="tel:112">
+            <svg class="icone" aria-hidden="true" focusable="false"><use href="#icone-telephone"></use></svg>
+            <span>Urgence&nbsp;: 112</span>
+          </a>
+        </div>
+        <p class="avertissement">Cette fiche ne remplace pas un appel aux secours.</p>
+      </div>
+
+      <!-- Tout en bas : deux boutons discrets (texte plus petit), mais aussi hauts que les autres. -->
+      <div class="actions separation">
+        <button type="button" id="bouton-aide" class="bouton discret">
+          <svg class="icone" aria-hidden="true" focusable="false"><use href="#icone-aide"></use></svg>
+          <span>Aide</span>
+        </button>
+        <button type="button" id="bouton-apropos" class="bouton discret">
+          <svg class="icone" aria-hidden="true" focusable="false"><use href="#icone-info"></use></svg>
+          <span>À propos</span>
+        </button>
+      </div>
     </section>
 
 
@@ -213,6 +271,14 @@
          Ce sont de vrais champs de texte : le micro du clavier (Gboard) fonctionne.
          ===================================================== -->
     <section id="ecran-modifier" class="ecran" aria-labelledby="titre-modifier" hidden>
+      <!-- Le bouton « Retour » (caché la première fois, quand la fiche est encore vide). -->
+      <div id="barre-modifier" class="barre-haut">
+        <button type="button" class="bouton retour-haut">
+          <svg class="icone" aria-hidden="true" focusable="false"><use href="#icone-retour"></use></svg>
+          <span>Retour</span>
+        </button>
+      </div>
+
       <h1 id="titre-modifier" tabindex="-1">Modifier ma fiche</h1>
 
       <p id="explication-premiere-fois" class="explication" hidden>
@@ -224,6 +290,8 @@
 
       <!-- novalidate : c'est app.js qui vérifie les champs et affiche des messages clairs. -->
       <form id="formulaire" novalidate>
+        <p class="aide aide-formulaire">Toutes les cases sont facultatives.</p>
+
         <fieldset>
           <legend>Mon conjoint</legend>
 
@@ -272,6 +340,118 @@
                       autocapitalize="sentences" maxlength="1000"
                       aria-describedby="aide-message"></textarea>
           </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Informations utiles aux secours</legend>
+          <p class="aide aide-haut">L’application montre et lit ces informations telles que vous les écrivez.</p>
+
+          <div class="champ">
+            <label for="champ-medecin">Mon médecin traitant</label>
+            <span id="aide-medecin" class="aide">Exemple : Docteur Nom, 01&nbsp;00&nbsp;00&nbsp;00&nbsp;00</span>
+            <textarea id="champ-medecin" name="medecin" rows="2" class="court"
+                      autocapitalize="sentences" maxlength="300"
+                      aria-describedby="aide-medecin"></textarea>
+          </div>
+
+          <div class="champ">
+            <label for="champ-traitements">Mes traitements</label>
+            <span id="aide-traitements" class="aide">Exemple : le nom du médicament et l’heure de la prise.</span>
+            <textarea id="champ-traitements" name="traitements" rows="4"
+                      autocapitalize="sentences" maxlength="1000"
+                      aria-describedby="aide-traitements"></textarea>
+          </div>
+
+          <div class="champ">
+            <label for="champ-allergies">Mes allergies</label>
+            <textarea id="champ-allergies" name="allergies" rows="2" class="court"
+                      autocapitalize="sentences" maxlength="500"></textarea>
+          </div>
+
+          <div class="champ">
+            <label for="champ-autres-informations">Autres informations importantes</label>
+            <textarea id="champ-autres-informations" name="autresInformations" rows="4"
+                      autocapitalize="sentences" maxlength="1000"></textarea>
+          </div>
+        </fieldset>
+
+        <!-- Les personnes à prévenir : 3 au maximum (limite voulue, pour ne pas multiplier les listes).
+             Chaque étiquette visible (« Prénom ») est complétée pour TalkBack (« Prénom, personne 1 »). -->
+        <fieldset>
+          <legend>Personnes à prévenir</legend>
+          <p class="aide aide-haut">Jusqu’à trois personnes, en plus de mon conjoint.</p>
+
+          <fieldset class="sous-groupe">
+            <legend>Personne 1</legend>
+            <div class="champ">
+              <label for="champ-personne1-prenom">Prénom<span class="visuellement-cache">, personne 1</span></label>
+              <input id="champ-personne1-prenom" name="personne1Prenom" type="text"
+                     autocomplete="off" autocapitalize="words" spellcheck="false" maxlength="60">
+            </div>
+            <div class="champ">
+              <label for="champ-personne1-lien">Lien avec moi<span class="visuellement-cache">, personne 1</span></label>
+              <span id="aide-personne1-lien" class="aide">Exemple : sœur, ami</span>
+              <input id="champ-personne1-lien" name="personne1Lien" type="text"
+                     autocomplete="off" spellcheck="false" maxlength="40"
+                     aria-describedby="aide-personne1-lien">
+            </div>
+            <div class="champ">
+              <label for="champ-personne1-telephone">Téléphone<span class="visuellement-cache">, personne 1</span></label>
+              <span id="aide-personne1-telephone" class="aide">Exemple : 06 00 00 00 00</span>
+              <input id="champ-personne1-telephone" name="personne1Telephone" type="tel"
+                     autocomplete="off" maxlength="25"
+                     aria-describedby="aide-personne1-telephone erreur-personne1-telephone">
+              <p id="erreur-personne1-telephone" class="erreur-champ" hidden></p>
+            </div>
+          </fieldset>
+
+          <fieldset class="sous-groupe">
+            <legend>Personne 2</legend>
+            <div class="champ">
+              <label for="champ-personne2-prenom">Prénom<span class="visuellement-cache">, personne 2</span></label>
+              <input id="champ-personne2-prenom" name="personne2Prenom" type="text"
+                     autocomplete="off" autocapitalize="words" spellcheck="false" maxlength="60">
+            </div>
+            <div class="champ">
+              <label for="champ-personne2-lien">Lien avec moi<span class="visuellement-cache">, personne 2</span></label>
+              <span id="aide-personne2-lien" class="aide">Exemple : sœur, ami</span>
+              <input id="champ-personne2-lien" name="personne2Lien" type="text"
+                     autocomplete="off" spellcheck="false" maxlength="40"
+                     aria-describedby="aide-personne2-lien">
+            </div>
+            <div class="champ">
+              <label for="champ-personne2-telephone">Téléphone<span class="visuellement-cache">, personne 2</span></label>
+              <span id="aide-personne2-telephone" class="aide">Exemple : 06 00 00 00 00</span>
+              <input id="champ-personne2-telephone" name="personne2Telephone" type="tel"
+                     autocomplete="off" maxlength="25"
+                     aria-describedby="aide-personne2-telephone erreur-personne2-telephone">
+              <p id="erreur-personne2-telephone" class="erreur-champ" hidden></p>
+            </div>
+          </fieldset>
+
+          <fieldset class="sous-groupe">
+            <legend>Personne 3</legend>
+            <div class="champ">
+              <label for="champ-personne3-prenom">Prénom<span class="visuellement-cache">, personne 3</span></label>
+              <input id="champ-personne3-prenom" name="personne3Prenom" type="text"
+                     autocomplete="off" autocapitalize="words" spellcheck="false" maxlength="60">
+            </div>
+            <div class="champ">
+              <label for="champ-personne3-lien">Lien avec moi<span class="visuellement-cache">, personne 3</span></label>
+              <span id="aide-personne3-lien" class="aide">Exemple : sœur, ami</span>
+              <input id="champ-personne3-lien" name="personne3Lien" type="text"
+                     autocomplete="off" spellcheck="false" maxlength="40"
+                     aria-describedby="aide-personne3-lien">
+            </div>
+            <div class="champ">
+              <label for="champ-personne3-telephone">Téléphone<span class="visuellement-cache">, personne 3</span></label>
+              <span id="aide-personne3-telephone" class="aide">Exemple : 06 00 00 00 00</span>
+              <input id="champ-personne3-telephone" name="personne3Telephone" type="tel"
+                     autocomplete="off" maxlength="25"
+                     aria-describedby="aide-personne3-telephone erreur-personne3-telephone">
+              <p id="erreur-personne3-telephone" class="erreur-champ" hidden></p>
+            </div>
+          </fieldset>
         </fieldset>
 
         <div class="actions">
@@ -386,6 +566,32 @@
             <p id="plein-message" class="message-libre"></p>
           </div>
         </div>
+
+        <!-- Même ordre que sur l'écran d'accueil -->
+        <div id="plein-bloc-secours" class="bloc-fiche">
+          <h2 class="titre-section">Informations utiles aux secours</h2>
+          <div id="plein-secours" class="carte-fiche"></div>
+        </div>
+
+        <div id="plein-bloc-personnes" class="bloc-fiche">
+          <h2 class="titre-section">Personnes à prévenir</h2>
+          <div id="plein-personnes"></div>
+        </div>
+
+        <div class="bloc-fiche">
+          <h2 class="titre-section">Numéros d’urgence</h2>
+          <div class="actions actions-urgence">
+            <a class="bouton urgence" href="tel:15">
+              <svg class="icone" aria-hidden="true" focusable="false"><use href="#icone-telephone"></use></svg>
+              <span>Urgence&nbsp;: 15</span>
+            </a>
+            <a class="bouton urgence" href="tel:112">
+              <svg class="icone" aria-hidden="true" focusable="false"><use href="#icone-telephone"></use></svg>
+              <span>Urgence&nbsp;: 112</span>
+            </a>
+          </div>
+          <p class="avertissement">Cette fiche ne remplace pas un appel aux secours.</p>
+        </div>
       </div>
 
       <div class="plein-barre">
@@ -415,7 +621,8 @@
 
       <div id="donnees-choix">
         <p class="explication">
-          Le fichier de sauvegarde contient ma fiche, mes phrases modifiées et mes appels.
+          Le fichier de sauvegarde contient toute ma fiche, avec les informations pour les secours
+          et les personnes à prévenir. Il contient aussi mes phrases modifiées et mes appels.
           Il permet de tout retrouver, par exemple sur un nouveau téléphone.
         </p>
         <p class="explication">Ce fichier contient des informations personnelles. Gardez-le pour vous.</p>
@@ -766,6 +973,58 @@
       <p id="aucun-appel" class="explication" hidden>Aucun appel enregistré pour le moment.</p>
       <!-- role="list" : la liste reste annoncée comme une liste par TalkBack. -->
       <ol id="liste-appels" class="liste-appels" role="list"></ol>
+    </section>
+
+
+    <!-- =====================================================
+         AIDE : cinq phrases, pas plus.
+         ===================================================== -->
+    <section id="ecran-aide" class="ecran" aria-labelledby="titre-aide" hidden>
+      <div class="barre-haut">
+        <button type="button" class="bouton retour-haut">
+          <svg class="icone" aria-hidden="true" focusable="false"><use href="#icone-retour"></use></svg>
+          <span>Retour</span>
+        </button>
+      </div>
+
+      <h1 id="titre-aide" tabindex="-1">Aide</h1>
+      <div id="message-aide" class="message" role="status"></div>
+
+      <!-- role="list" : la liste reste annoncée comme une liste par TalkBack. -->
+      <ul class="liste-aide" role="list">
+        <li>Pour modifier votre fiche&nbsp;: touchez «&nbsp;Réglages&nbsp;», puis «&nbsp;Modifier ma fiche&nbsp;».</li>
+        <li>Pour écouter votre fiche&nbsp;: touchez «&nbsp;Écouter&nbsp;», en haut de l’écran.</li>
+        <li>Pour préparer un appel&nbsp;: touchez «&nbsp;Préparer un appel&nbsp;», puis la raison de votre appel.</li>
+        <li>Pour sauvegarder vos données&nbsp;: touchez «&nbsp;Réglages&nbsp;», puis «&nbsp;Mes données&nbsp;», puis «&nbsp;Sauvegarder dans un fichier&nbsp;».</li>
+        <li>Pour installer l’application&nbsp;: ouvrez-la dans Chrome, touchez les trois points en haut à droite, puis «&nbsp;Ajouter à l’écran d’accueil&nbsp;».</li>
+      </ul>
+    </section>
+
+
+    <!-- =====================================================
+         À PROPOS
+         La version est lue dans la copie hors ligne (remplie par app.js).
+         ===================================================== -->
+    <section id="ecran-apropos" class="ecran" aria-labelledby="titre-apropos" hidden>
+      <div class="barre-haut">
+        <button type="button" class="bouton retour-haut">
+          <svg class="icone" aria-hidden="true" focusable="false"><use href="#icone-retour"></use></svg>
+          <span>Retour</span>
+        </button>
+      </div>
+
+      <h1 id="titre-apropos" tabindex="-1">À propos</h1>
+      <div id="message-apropos" class="message" role="status"></div>
+
+      <div class="carte-fiche apropos">
+        <p class="apropos-nom">Ma fiche</p>
+        <p id="apropos-version" class="valeur" hidden></p>
+        <ul class="liste-aide" role="list">
+          <li>Application gratuite et sans publicité.</li>
+          <li>Vos données restent uniquement sur ce téléphone.</li>
+        </ul>
+        <p class="signature">Créée par Ferrus Dantioch</p>
+      </div>
     </section>
 
   </main>

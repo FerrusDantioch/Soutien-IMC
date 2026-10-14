@@ -151,31 +151,6 @@ function textesDeLaRaison(idRaison) {
   };
 }
 
-// Quand on touche une grande case de texte, le curseur se place à la fin :
-// la dictée ajoute alors le texte à la suite, sans couper ce qui est déjà écrit.
-// (Placer le curseur au milieu d'un mot demande un geste trop précis.)
-let heureDuFocus = 0;
-
-function curseurALaFin(champ) {
-  const fin = champ.value.length;
-  champ.setSelectionRange(fin, fin);
-}
-
-function quandUneCaseRecoitLeFocus(evenement) {
-  heureDuFocus = Date.now();
-  curseurALaFin(evenement.target);
-}
-
-// Le toucher qui ouvre la case pose le curseur sous le doigt, juste après le focus :
-// on le remet à la fin. Un toucher suivant, lui, place le curseur où l'on veut.
-function quandOnToucheUneCase(evenement) {
-  if (Date.now() - heureDuFocus < 1000) {
-    curseurALaFin(evenement.target);
-  }
-  heureDuFocus = 0;
-}
-
-
 /* ---------- 5. L'appel en cours ----------
    L'appel en cours est rangé dans le téléphone à chaque modification.
    Si le téléphone ferme l'application pendant l'appel, rien n'est perdu. */
@@ -633,8 +608,9 @@ function chargerLesAppels() {
   const textes = lireStockage(CLE_TEXTES);
   textesModifies = (textes && typeof textes === 'object' && !Array.isArray(textes)) ? textes : {};
 
+  // Seuls les vrais appels sont gardés : une ligne abîmée ne doit pas bloquer « Mes appels ».
   const liste = lireStockage(CLE_APPELS);
-  appels = Array.isArray(liste) ? liste : [];
+  appels = Array.isArray(liste) ? liste.filter((appel) => appel && typeof appel === 'object') : [];
 
   const enCours = lireStockage(CLE_APPEL_EN_COURS);
   const valide = enCours && typeof enCours === 'object' && RAISONS.some((raison) => raison.id === enCours.raison);
@@ -703,13 +679,6 @@ function brancherLesBoutonsDesAppels() {
   element('champ-avec-qui').addEventListener('keydown', passerALaDecision);
   element('champ-decision').addEventListener('input', quandLeRecapChange);
   element('formulaire-recap').addEventListener('submit', enregistrerLAppel);
-
-  // Le curseur se place à la fin des grandes cases de texte (pour la dictée)
-  ['champ-notes', 'champ-decision', 'champ-phrase', 'champ-question-1', 'champ-question-2', 'champ-question-3']
-    .forEach((id) => {
-      element(id).addEventListener('focus', quandUneCaseRecoitLeFocus);
-      element(id).addEventListener('click', quandOnToucheUneCase);
-    });
 
   // Quand l'application passe en arrière-plan (appel en cours…), on range tout
   document.addEventListener('visibilitychange', () => {

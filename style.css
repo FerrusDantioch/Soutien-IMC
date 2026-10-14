@@ -38,6 +38,10 @@
   --erreur-bord: #8A0000;
   --erreur-texte: #8A0000;     /* contraste 10,1 */
   --info-fond: #F2F2F2;
+
+  --urgence: #8A0000;          /* rouge foncé des boutons « Urgence » */
+  --sur-urgence: #FFFFFF;      /* texte blanc sur ce rouge : contraste 10,1 */
+  --urgence-appui: #5C0000;
 }
 
 /* ---------- 2. Thème sombre (suit le réglage du téléphone) ---------- */
@@ -64,6 +68,10 @@
     --erreur-bord: #FFB3B3;
     --erreur-texte: #FFB3B3;
     --info-fond: #262626;
+
+    --urgence: #FFB3B3;        /* rouge clair */
+    --sur-urgence: #000000;    /* texte noir sur rouge clair : contraste 12,3 */
+    --urgence-appui: #FFD6D6;
   }
 }
 
@@ -217,6 +225,67 @@ p {
   overflow-wrap: anywhere;
 }
 
+/* Les blocs suivants de la fiche : secours, personnes à prévenir, urgences */
+.bloc-fiche {
+  margin-top: 1.75rem;
+}
+
+.titre-section {
+  margin-bottom: 0.5rem;
+}
+
+/* Un cadre autour des informations (secours, une personne, à propos) */
+.carte-fiche {
+  padding: 0.6rem 0.9rem 0.9rem;
+  border: 3px solid var(--bordure);
+  border-radius: 14px;
+}
+
+.carte-fiche + .carte-fiche {
+  margin-top: max(20px, 1rem);
+}
+
+.carte-fiche > .etiquette:not(:first-child) {
+  margin-top: 0.75rem;
+}
+
+.personne-nom {
+  font-size: 1.4rem;
+  font-weight: 800;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.personne-telephone {
+  margin-top: 0.2rem;
+  font-size: 1.6rem;
+  font-weight: 800;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.carte-fiche .bouton {
+  margin-top: 0.75rem;
+}
+
+.actions.actions-urgence {
+  margin-top: 0.5rem;
+}
+
+/* Les boutons de l'accueil, en haut, séparés de la fiche par une ligne. */
+.actions.actions-accueil {
+  margin: 0 0 1.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 3px solid var(--bordure);
+}
+
+.avertissement {
+  margin-top: 1rem;
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
 
 /* ---------- 5. Les boutons ---------- */
 
@@ -291,6 +360,26 @@ p {
 
 .bouton.grand:active {
   background: var(--fond-appui);
+}
+
+/* Les boutons « Urgence : 15 » et « Urgence : 112 » : grands et rouges. */
+.bouton.urgence {
+  min-height: max(80px, 3.6rem);
+  font-size: 1.35rem;
+  color: var(--sur-urgence);
+  background: var(--urgence);
+  border-color: var(--urgence);
+}
+
+.bouton.urgence:active {
+  background: var(--urgence-appui);
+  border-color: var(--urgence-appui);
+}
+
+/* Un bouton discret (« Aide », « À propos ») : texte moins gros, mais toujours 64 px de haut. */
+.bouton.discret {
+  font-size: 1.05rem;
+  font-weight: 600;
 }
 
 /* Contour bien visible autour de l'élément actif (clavier, TalkBack). */
@@ -390,9 +479,24 @@ fieldset {
 }
 
 legend {
+  /* Le titre d'un groupe ne dépasse jamais du cadre : avec un texte très agrandi,
+     un mot trop long pour la ligne (« Informations ») est coupé. */
+  max-width: 100%;
   padding: 0 0.4rem;
   font-size: 1.3rem;
   font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+/* Un groupe dans un groupe (« Personne 1 », « Personne 2 »…) : un cadre plus fin. */
+fieldset.sous-groupe {
+  margin: 1.25rem 0 0;
+  padding: 0 0.75rem 1rem;
+  border-width: 2px;
+}
+
+fieldset.sous-groupe legend {
+  font-size: 1.15rem;
 }
 
 /* Un champ par ligne */
@@ -511,6 +615,22 @@ textarea {
 
 .ecran-plein .etiquette {
   font-size: 1.15rem;
+}
+
+.ecran-plein .titre-section {
+  font-size: 1.6rem;
+}
+
+.ecran-plein .carte-fiche .message-libre {
+  font-size: 1.5rem;
+}
+
+.ecran-plein .personne-nom {
+  font-size: 1.8rem;
+}
+
+.ecran-plein .personne-telephone {
+  font-size: 2rem;
 }
 
 .plein-barre {
@@ -788,4 +908,32 @@ textarea.court {
 
 .explication + .explication {
   margin-top: -0.5rem;
+}
+
+
+/* ---------- 13. Aide et À propos ---------- */
+
+/* Une phrase par ligne, bien espacées. */
+.liste-aide {
+  margin: 0;
+  padding-left: 1.4em;
+  font-size: 1.2rem;
+}
+
+.liste-aide li + li {
+  margin-top: 1rem;
+}
+
+.apropos .liste-aide {
+  margin: 1rem 0;
+}
+
+.apropos-nom {
+  font-size: 1.6rem;
+  font-weight: 800;
+}
+
+.signature {
+  font-size: 1.15rem;
+  font-weight: 700;
 }

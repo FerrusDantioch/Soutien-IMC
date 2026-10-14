@@ -3,6 +3,8 @@
 
    Ce fichier :
    - lit et enregistre la fiche dans le téléphone (localStorage) ;
+   - affiche la fiche : conjoint, ce que je souhaite que l'on sache,
+     informations utiles aux secours, personnes à prévenir, numéros d'urgence ;
    - affiche le bon écran, et tient à jour le chemin parcouru
      (bouton « Retour » de l'application et bouton « retour » d'Android) ;
    - lit la fiche à voix haute (synthèse vocale du navigateur) ;
@@ -40,7 +42,32 @@ const TAILLE_PAR_DEFAUT = 1;
 const DELAI_ANTI_REBOND = 500;
 
 // Les cases de la fiche (mêmes noms que l'attribut « name » des champs du formulaire).
-const CHAMPS = ['conjointPrenom', 'conjointNom', 'conjointTelephone', 'prenom', 'nom', 'message'];
+// Les six premières existent depuis l'étape 1 : leurs noms ne doivent jamais changer,
+// sinon les fiches déjà enregistrées dans le téléphone seraient perdues.
+const CHAMPS = [
+  'conjointPrenom', 'conjointNom', 'conjointTelephone', 'prenom', 'nom', 'message',
+  // Informations utiles aux secours
+  'medecin', 'traitements', 'allergies', 'autresInformations',
+  // Personnes à prévenir
+  'personne1Prenom', 'personne1Lien', 'personne1Telephone',
+  'personne2Prenom', 'personne2Lien', 'personne2Telephone',
+  'personne3Prenom', 'personne3Lien', 'personne3Telephone'
+];
+
+// Les cases qui contiennent un numéro de téléphone (vérifiées avant d'enregistrer).
+const CHAMPS_TELEPHONE = ['conjointTelephone', 'personne1Telephone', 'personne2Telephone', 'personne3Telephone'];
+
+// Les informations utiles aux secours, dans l'ordre d'affichage et de lecture.
+// Elles sont affichées et lues telles qu'elles sont écrites : rien n'est interprété.
+const INFORMATIONS_SECOURS = [
+  { champ: 'medecin', titre: 'Mon médecin traitant' },
+  { champ: 'traitements', titre: 'Mes traitements' },
+  { champ: 'allergies', titre: 'Mes allergies' },
+  { champ: 'autresInformations', titre: 'Autres informations importantes' }
+];
+
+// Au plus 3 personnes à prévenir, en plus du conjoint (limite voulue).
+const NOMBRE_DE_PERSONNES = 3;
 
 // Les écrans : nom court → identifiant (id) dans index.html.
 const ECRANS = {
@@ -54,7 +81,9 @@ const ECRANS = {
   modele: 'ecran-modele',
   notes: 'ecran-notes',
   recap: 'ecran-recap',
-  appels: 'ecran-appels'
+  appels: 'ecran-appels',
+  aide: 'ecran-aide',
+  apropos: 'ecran-apropos'
 };
 
 // Le chemin entre les écrans : chaque écran → l'écran où ramène le bouton « Retour ».
@@ -69,7 +98,9 @@ const PARENTS = {
   modele: 'preparation',
   notes: 'preparation',
   recap: 'notes',
-  appels: 'raisons'
+  appels: 'raisons',
+  aide: 'accueil',
+  apropos: 'accueil'
 };
 
 
@@ -146,6 +177,48 @@ function stockageDisponible() {
 // Une fiche est vide si toutes ses cases sont vides.
 function ficheEstVide(uneFiche) {
   return !uneFiche || CHAMPS.every((champ) => !nettoyer(uneFiche[champ]));
+}
+
+// Remet une fiche lue dans le téléphone (ou dans un fichier de sauvegarde) au format actuel.
+// C'est la « migration » : une fiche des étapes 1 et 2 n'a que les six premières cases ;
+// les cases nouvelles (secours, personnes à prévenir) sont alors simplement vides.
+// Chaque case devient un texte : une valeur abîmée ne peut pas bloquer l'application.
+// longueurs (facultatif) : la longueur maximale de chaque case.
+// Renvoie null si ce n'est pas une fiche, ou si elle est vide.
+function ficheLue(brute, longueurs) {
+  if (!brute || typeof brute !== 'object' || Array.isArray(brute)) {
+    return null;
+  }
+  const propre = {};
+  CHAMPS.forEach((champ) => {
+    const valeur = typeof brute[champ] === 'string' ? brute[champ] : '';
+    propre[champ] = longueurs ? valeur.slice(0, longueurs[champ]) : valeur;
+  });
+  return ficheEstVide(propre) ? null : propre;
+}
+
+// Quand on touche une grande case de texte, le curseur se place à la fin :
+// la dictée (micro du clavier) ajoute alors le texte à la suite, sans couper ce qui est déjà écrit.
+// (Placer le curseur au milieu d'un mot demande un geste trop précis.)
+let heureDuFocus = 0;
+
+function curseurALaFin(champ) {
+  const fin = champ.value.length;
+  champ.setSelectionRange(fin, fin);
+}
+
+function quandUneCaseRecoitLeFocus(evenement) {
+  heureDuFocus = Date.now();
+  curseurALaFin(evenement.target);
+}
+
+// Le toucher qui ouvre la case pose le curseur sous le doigt, juste après le focus :
+// on le remet à la fin. Un toucher suivant, lui, place le curseur où l'on veut.
+function quandOnToucheUneCase(evenement) {
+  if (Date.now() - heureDuFocus < 1000) {
+    curseurALaFin(evenement.target);
+  }
+  heureDuFocus = 0;
 }
 
 // Change l'adresse de la page (la partie après « # ») sans recharger.
@@ -315,7 +388,10 @@ function preparerEtAfficher(nom, options = {}) {
       afficherFiche();
       break;
     case 'reglages':
-      afficherVersion();
+      afficherVersion('version');
+      break;
+    case 'apropos':
+      afficherVersion('apropos-version');
       break;
     case 'donnees':
       afficherMesDonnees();       // donnees.js
@@ -494,7 +570,83 @@ function remplir(id, texte) {
   cible.hidden = !texte;
 }
 
-// Remplit la fiche sur l'écran d'accueil et sur l'écran « Plein écran ».
+// Crée un paragraphe avec une classe et un texte.
+function paragraphe(classe, texte) {
+  const p = document.createElement('p');
+  p.className = classe;
+  p.textContent = texte;
+  return p;
+}
+
+// Les personnes à prévenir qui ont au moins une case remplie.
+function personnesDeLaFiche(f) {
+  const personnes = [];
+  for (let numero = 1; numero <= NOMBRE_DE_PERSONNES; numero += 1) {
+    const personne = {
+      prenom: nettoyer(f['personne' + numero + 'Prenom']),
+      lien: nettoyer(f['personne' + numero + 'Lien']),
+      telephone: nettoyer(f['personne' + numero + 'Telephone'])
+    };
+    if (personne.prenom || personne.lien || personne.telephone) {
+      personnes.push(personne);
+    }
+  }
+  return personnes;
+}
+
+// « Prénom (sœur) », ou seulement le prénom, ou seulement le lien.
+function nomDeLaPersonne(personne) {
+  if (personne.prenom && personne.lien) {
+    return personne.prenom + ' (' + personne.lien + ')';
+  }
+  return personne.prenom || majuscule(personne.lien);
+}
+
+// Les informations utiles aux secours : une étiquette, puis le texte écrit (seulement les cases remplies).
+function remplirSecours(ecran, f) {
+  const zone = element(ecran + '-secours');
+  zone.replaceChildren();
+  INFORMATIONS_SECOURS.forEach((information) => {
+    const texte = nettoyer(f[information.champ]);
+    if (texte) {
+      zone.append(paragraphe('etiquette', information.titre), paragraphe('message-libre', texte));
+    }
+  });
+  element(ecran + '-bloc-secours').hidden = zone.children.length === 0;
+}
+
+// Les personnes à prévenir : une carte par personne, avec son bouton « Appeler ».
+function remplirPersonnes(ecran, f) {
+  const zone = element(ecran + '-personnes');
+  zone.replaceChildren();
+  personnesDeLaFiche(f).forEach((personne) => {
+    const carte = document.createElement('div');
+    carte.className = 'carte-fiche';
+    const nom = nomDeLaPersonne(personne);
+    if (nom) {
+      carte.appendChild(paragraphe('personne-nom', nom));
+    }
+    if (personne.telephone) {
+      carte.appendChild(paragraphe('personne-telephone', numeroPourAffichage(personne.telephone)));
+    }
+    // Le bouton « Appeler » n'apparaît que si le numéro est correct.
+    if (personne.telephone && numeroValide(personne.telephone)) {
+      const lien = document.createElement('a');
+      lien.className = 'bouton';
+      lien.href = 'tel:' + numeroPourAppel(personne.telephone);
+      const texte = document.createElement('span');
+      texte.textContent = 'Appeler ' + (personne.prenom || personne.lien || 'ce numéro');
+      lien.append(creerIcone('telephone'), texte);
+      carte.appendChild(lien);
+    }
+    zone.appendChild(carte);
+  });
+  element(ecran + '-bloc-personnes').hidden = zone.children.length === 0;
+}
+
+// Remplit la fiche sur l'écran d'accueil et sur l'écran « Plein écran », dans le même ordre :
+// conjoint, ce que je souhaite que l'on sache, secours, personnes à prévenir, urgences.
+// (Les numéros d'urgence sont écrits directement dans index.html : ils sont toujours là.)
 function afficherFiche() {
   const f = fiche || {};
   const conjoint = nomComplet(f.conjointPrenom, f.conjointNom);
@@ -510,6 +662,8 @@ function afficherFiche() {
     element(ecran + '-bloc-nom').hidden = !moi;
     remplir(ecran + '-message', message);
     element(ecran + '-bloc-message').hidden = !message;
+    remplirSecours(ecran, f);
+    remplirPersonnes(ecran, f);
   });
 
   // Le bouton « Appeler » n'apparaît que s'il y a un numéro.
@@ -534,25 +688,29 @@ function remplirFormulaire(premiereFois) {
   CHAMPS.forEach((champ) => {
     formulaire.elements[champ].value = f[champ] || '';
   });
-  effacerErreurTelephone();
+  effacerLesErreurs();
   element('titre-modifier').textContent = premiereFois ? 'Bienvenue' : 'Modifier ma fiche';
   element('explication-premiere-fois').hidden = !premiereFois;
+  // La première fois, il n'y a pas encore de fiche où revenir : ni « Retour », ni « Annuler ».
+  element('barre-modifier').hidden = premiereFois;
   element('bouton-annuler').hidden = premiereFois;
 }
 
-function montrerErreurTelephone(texte) {
-  const champ = element('champ-conjoint-telephone');
-  const erreur = element('erreur-telephone');
+// Le message d'erreur d'une case est le paragraphe « erreur-champ » juste en dessous.
+function montrerErreur(champ, texte) {
+  const erreur = champ.parentElement.querySelector('.erreur-champ');
   erreur.textContent = texte;
   erreur.hidden = false;
   champ.setAttribute('aria-invalid', 'true');
 }
 
-function effacerErreurTelephone() {
-  const erreur = element('erreur-telephone');
-  erreur.textContent = '';
-  erreur.hidden = true;
-  element('champ-conjoint-telephone').removeAttribute('aria-invalid');
+function effacerLesErreurs() {
+  const formulaire = element('formulaire');
+  formulaire.querySelectorAll('.erreur-champ').forEach((erreur) => {
+    erreur.textContent = '';
+    erreur.hidden = true;
+  });
+  formulaire.querySelectorAll('[aria-invalid]').forEach((champ) => champ.removeAttribute('aria-invalid'));
 }
 
 // Bouton « Enregistrer ».
@@ -565,13 +723,21 @@ function enregistrerFiche(evenement) {
     nouvelleFiche[champ] = nettoyer(formulaire.elements[champ].value);
   });
 
-  effacerErreurTelephone();
+  effacerLesErreurs();
   effacerMessage('message-modifier');
 
-  if (!numeroValide(nouvelleFiche.conjointTelephone)) {
-    montrerErreurTelephone('Le numéro ne doit contenir que des chiffres.');
-    afficherMessage('message-modifier', 'La fiche n’est pas enregistrée. Corrigez le numéro de téléphone.', 'erreur');
-    element('champ-conjoint-telephone').focus();
+  // Chaque numéro faux est signalé sous sa case. Le curseur va dans la première case à corriger.
+  const numerosFaux = CHAMPS_TELEPHONE.filter((champ) => !numeroValide(nouvelleFiche[champ]));
+  if (numerosFaux.length > 0) {
+    numerosFaux.forEach((champ) => {
+      montrerErreur(formulaire.elements[champ], 'Le numéro ne doit contenir que des chiffres.');
+    });
+    afficherMessage('message-modifier',
+      numerosFaux.length === 1
+        ? 'La fiche n’est pas enregistrée. Corrigez le numéro de téléphone.'
+        : 'La fiche n’est pas enregistrée. Corrigez les numéros de téléphone.',
+      'erreur');
+    formulaire.elements[numerosFaux[0]].focus();
     return;
   }
 
@@ -598,15 +764,14 @@ function annulerModification() {
 }
 
 // Touche « Entrée » dans une case : on passe à la case suivante
-// (au lieu d'enregistrer la fiche trop tôt).
+// (au lieu d'enregistrer la fiche trop tôt). L'ordre est celui des cases à l'écran.
 function passerALaCaseSuivante(evenement) {
   if (evenement.key !== 'Enter' || evenement.target.tagName !== 'INPUT') {
     return;
   }
   evenement.preventDefault();
-  const formulaire = element('formulaire');
-  const position = CHAMPS.indexOf(evenement.target.name);
-  const suivant = formulaire.elements[CHAMPS[position + 1]];
+  const cases = [...element('formulaire').querySelectorAll('input, textarea')];
+  const suivant = cases[cases.indexOf(evenement.target) + 1];
   if (suivant) {
     suivant.focus();
   }
@@ -719,7 +884,8 @@ function decouperEnPhrases(texte) {
     .filter(Boolean);
 }
 
-// Prépare le texte lu par le bouton « Écouter ».
+// Prépare le texte lu par le bouton « Écouter » : toute la fiche, dans l'ordre de l'écran,
+// en sautant les cases vides. On commence par se présenter (« Bonjour. Je m'appelle… »).
 function phrasesDeLaFiche(f) {
   const phrases = [];
   const moi = nomComplet(f.prenom, f.nom);
@@ -727,8 +893,8 @@ function phrasesDeLaFiche(f) {
   const telephone = nettoyer(f.conjointTelephone);
 
   phrases.push(moi ? 'Bonjour. Je m’appelle ' + moi + '.' : 'Bonjour.');
-  decouperEnPhrases(f.message).forEach((phrase) => phrases.push(phrase));
 
+  // 1. Le conjoint
   if (conjoint) {
     phrases.push('En cas de besoin, vous pouvez appeler mon conjoint, ' + conjoint + '.');
   } else if (telephone) {
@@ -737,6 +903,39 @@ function phrasesDeLaFiche(f) {
   if (telephone) {
     phrases.push('Son numéro de téléphone est le ' + numeroPourVoix(telephone) + '.');
   }
+
+  // 2. Ce que je souhaite que l'on sache
+  decouperEnPhrases(f.message).forEach((phrase) => phrases.push(phrase));
+
+  // 3. Les informations utiles aux secours : le titre de la case, puis ce qui est écrit.
+  const informations = INFORMATIONS_SECOURS.filter((information) => nettoyer(f[information.champ]));
+  if (informations.length > 0) {
+    phrases.push('Informations utiles aux secours.');
+    informations.forEach((information) => {
+      phrases.push(information.titre + ' :');
+      decouperEnPhrases(f[information.champ]).forEach((phrase) => phrases.push(phrase));
+    });
+  }
+
+  // 4. Les personnes à prévenir
+  const personnes = personnesDeLaFiche(f);
+  if (personnes.length > 0) {
+    phrases.push(personnes.length === 1 ? 'Personne à prévenir.' : 'Personnes à prévenir.');
+    personnes.forEach((personne) => {
+      const nom = [personne.prenom, personne.lien].filter(Boolean).join(', ');
+      if (nom) {
+        phrases.push(nom + '.');
+      }
+      if (personne.telephone) {
+        phrases.push((nom ? 'Son numéro de téléphone est le ' : 'Numéro de téléphone : le ') +
+          numeroPourVoix(personne.telephone) + '.');
+      }
+    });
+  }
+
+  // 5. Les numéros d'urgence (toujours lus)
+  phrases.push('Numéros d’urgence : le 15, et le 112.');
+  phrases.push('Cette fiche ne remplace pas un appel aux secours.');
   return phrases;
 }
 
@@ -940,6 +1139,14 @@ function brancherLesBoutons() {
   element('bouton-ecouter').addEventListener('click', basculerLecture);
   element('bouton-plein-ecran').addEventListener('click', ouvrirPleinEcran);
   element('bouton-reglages').addEventListener('click', () => ouvrirEcran('reglages'));
+  element('bouton-aide').addEventListener('click', () => ouvrirEcran('aide'));
+  element('bouton-apropos').addEventListener('click', () => ouvrirEcran('apropos'));
+
+  // Dans toutes les grandes cases de texte, le curseur se place à la fin (pour la dictée).
+  document.querySelectorAll('textarea').forEach((champ) => {
+    champ.addEventListener('focus', quandUneCaseRecoitLeFocus);
+    champ.addEventListener('click', quandOnToucheUneCase);
+  });
 
   element('formulaire').addEventListener('submit', enregistrerFiche);
   element('formulaire').addEventListener('keydown', passerALaCaseSuivante);
@@ -985,10 +1192,12 @@ function protegerLesDonnees() {
   }
 }
 
-// Affiche la version installée, en bas des réglages (pour vérifier une mise à jour).
-// Elle est lue dans le nom de la copie hors ligne : « soutien-imc-v2 » → « v2 ».
-function afficherVersion() {
-  const zone = element('version');
+// Affiche la version installée, en bas des réglages et dans « À propos »
+// (pour vérifier une mise à jour). Elle est lue dans le nom de la copie hors ligne :
+// « soutien-imc-v3 » → « v3 ». Ainsi, le numéro n'est écrit qu'à un seul endroit : sw.js.
+// Sans copie hors ligne (page ouverte depuis un fichier de l'ordinateur), la ligne reste cachée.
+function afficherVersion(idZone) {
+  const zone = element(idZone);
   try {
     caches.keys().then((noms) => {
       const numeros = noms
@@ -1021,9 +1230,8 @@ function demarrer() {
   appliquerTaille();
   appliquerVitesse();
 
-  // 2. La fiche enregistrée
-  const ficheMemorisee = lireStockage(CLE_FICHE);
-  fiche = (ficheMemorisee && typeof ficheMemorisee === 'object') ? ficheMemorisee : null;
+  // 2. La fiche enregistrée, remise au format actuel (voir ficheLue()).
+  fiche = ficheLue(lireStockage(CLE_FICHE));
 
   // 3. Les appels : textes modifiés, appels enregistrés, appel en cours (appels.js)
   chargerLesAppels();

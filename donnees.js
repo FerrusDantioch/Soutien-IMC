@@ -2,7 +2,8 @@
    donnees.js — l'écran « Mes données »
 
    - « Sauvegarder dans un fichier » : crée un fichier qui contient
-     la fiche, les phrases et questions modifiées, et les appels.
+     toute la fiche (avec les secours et les personnes à prévenir),
+     les phrases et questions modifiées, et les appels.
      Le fichier arrive dans le dossier « Téléchargements » du téléphone.
    - « Restaurer depuis un fichier » : relit ce fichier et remplace
      les données du téléphone, après une confirmation claire.
@@ -17,20 +18,15 @@
 /* ---------- 1. Les réglages ---------- */
 
 // Le « format » du fichier. À augmenter si la forme des données change un jour.
-const FORMAT_DE_SAUVEGARDE = 1;
+//  - format 1 (étape 2) : la fiche n'a que les six premières cases ;
+//  - format 2 (étape 3) : la fiche a aussi les secours et les personnes à prévenir.
+// Les deux formats peuvent être restaurés : dans un fichier au format 1,
+// les nouvelles cases sont simplement vides (voir ficheLue() dans app.js).
+const FORMAT_DE_SAUVEGARDE = 2;
+const FORMATS_ACCEPTES = [1, 2];
 
 // Un fichier plus gros ne peut pas être une sauvegarde de cette application.
 const TAILLE_MAXIMUM_DU_FICHIER = 5 * 1024 * 1024;     // 5 mégaoctets
-
-// Longueurs maximales des cases de la fiche (les mêmes que dans index.html).
-const LONGUEURS_FICHE = {
-  conjointPrenom: 60,
-  conjointNom: 60,
-  conjointTelephone: 25,
-  prenom: 60,
-  nom: 60,
-  message: 1000
-};
 
 let sauvegardeARestaurer = null;    // le contenu du fichier choisi, en attente de confirmation
 
@@ -125,25 +121,27 @@ function texteSur(valeur, longueur) {
   return typeof valeur === 'string' ? valeur.slice(0, longueur) : '';
 }
 
+// Longueurs maximales des cases de la fiche : on les lit dans le formulaire
+// (attribut « maxlength » de index.html). Ainsi, elles ne sont écrites qu'à un seul endroit.
+function longueursDeLaFiche() {
+  const formulaire = element('formulaire');
+  const longueurs = {};
+  CHAMPS.forEach((champ) => {
+    longueurs[champ] = formulaire.elements[champ].maxLength;
+  });
+  return longueurs;
+}
+
 // Vérifie le fichier et ne garde que ce que l'application connaît.
 // Renvoie null si ce n'est pas une sauvegarde de cette application.
 function verifierLaSauvegarde(contenu) {
   if (!contenu || typeof contenu !== 'object' ||
-      contenu.application !== 'soutien-imc' || contenu.format !== FORMAT_DE_SAUVEGARDE) {
+      contenu.application !== 'soutien-imc' || !FORMATS_ACCEPTES.includes(contenu.format)) {
     return null;
   }
 
-  // La fiche
-  let ficheLue = null;
-  if (contenu.fiche && typeof contenu.fiche === 'object') {
-    ficheLue = {};
-    CHAMPS.forEach((champ) => {
-      ficheLue[champ] = texteSur(contenu.fiche[champ], LONGUEURS_FICHE[champ]);
-    });
-    if (ficheEstVide(ficheLue)) {
-      ficheLue = null;
-    }
-  }
+  // La fiche (toutes ses cases, y compris les secours et les personnes à prévenir)
+  const ficheDuFichier = ficheLue(contenu.fiche, longueursDeLaFiche());
 
   // Les phrases et questions modifiées, raison par raison
   const textesLus = {};
@@ -180,7 +178,7 @@ function verifierLaSauvegarde(contenu) {
   const date = new Date(contenu.date);
   return {
     date: isNaN(date.getTime()) ? null : date.toISOString(),
-    fiche: ficheLue,
+    fiche: ficheDuFichier,
     textes: textesLus,
     appels: appelsLus
   };
@@ -191,7 +189,8 @@ function montrerLaConfirmation(sauvegarde) {
   const quand = sauvegarde.date ? ' du ' + dateEnToutesLettres(sauvegarde.date) : '';
   element('texte-confirmation').textContent =
     'Votre fiche, vos phrases et vos appels vont être remplacés par ceux du fichier' + quand + '. ' +
-    'Les données actuelles de ce téléphone seront effacées.';
+    'Les données actuelles de ce téléphone seront effacées.' +
+    (sauvegarde.fiche ? '' : ' Ce fichier ne contient pas de fiche : vous devrez la remplir à nouveau.');
   element('donnees-choix').hidden = true;
   element('donnees-confirmation').hidden = false;
   dernierAppui = Date.now();        // un appui en trop, juste après, sera ignoré
