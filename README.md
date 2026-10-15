@@ -20,7 +20,8 @@ Les boutons d’urgence ouvrent le téléphone avec le numéro déjà tapé : il
 Boutons de l’accueil (en haut, pour ne jamais avoir à faire défiler l’écran pour les trouver) :
 **Écouter**, **Préparer un appel**, **Appeler mon conjoint**, **Plein écran**, **Réglages**
 (taille du texte, vitesse de la voix, modifier la fiche, mes données).
-Tout en bas, deux boutons discrets : **Aide** (cinq phrases) et **À propos**.
+Tout en bas, deux boutons discrets : **Aide** (cinq phrases) et **À propos** (la version installée,
+le concepteur de l’application, Ferrus Dantioch, et l’aide de Claude, l’intelligence artificielle d’Anthropic).
 
 ## Préparer un appel
 
@@ -109,10 +110,10 @@ La fiche doit s’afficher normalement.
 ## Mettre à jour l’application
 
 Après chaque modification d’un fichier, ouvrir `sw.js` et augmenter le numéro de version
-(la version actuelle est `v5`) :
+(la version actuelle est `v6`) :
 
 ```js
-const VERSION = 'v6';   // puis v7, v8…
+const VERSION = 'v7';   // puis v8, v9…
 ```
 
 C’est le seul endroit où le numéro est écrit : « Réglages » et « À propos » le lisent tout seuls.
@@ -127,7 +128,7 @@ Sur le téléphone, pour recevoir la nouvelle version :
 2. Fermer complètement l’application : bouton des applications récentes (le carré, ou glisser
    depuis le bas de l’écran selon le réglage du téléphone), puis fermer « Ma fiche ».
 3. Rouvrir « Ma fiche » : la nouvelle version s’affiche.
-4. Vérifier dans **À propos** (ou dans **Réglages**, tout en bas) : « Version installée : v5 »
+4. Vérifier dans **À propos** (ou dans **Réglages**, tout en bas) : « Version installée : v6 »
    (ou le numéro attendu). Si ce n’est pas le cas, recommencer les étapes 1 à 3.
 
 Les données (fiche, réglages, phrases modifiées, appels, appel en cours) sont conservées lors d’une mise à jour.
