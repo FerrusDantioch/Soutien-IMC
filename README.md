@@ -109,10 +109,10 @@ La fiche doit s’afficher normalement.
 ## Mettre à jour l’application
 
 Après chaque modification d’un fichier, ouvrir `sw.js` et augmenter le numéro de version
-(la version actuelle est `v4`) :
+(la version actuelle est `v5`) :
 
 ```js
-const VERSION = 'v5';   // puis v6, v7…
+const VERSION = 'v6';   // puis v7, v8…
 ```
 
 C’est le seul endroit où le numéro est écrit : « Réglages » et « À propos » le lisent tout seuls.
@@ -127,7 +127,7 @@ Sur le téléphone, pour recevoir la nouvelle version :
 2. Fermer complètement l’application : bouton des applications récentes (le carré, ou glisser
    depuis le bas de l’écran selon le réglage du téléphone), puis fermer « Ma fiche ».
 3. Rouvrir « Ma fiche » : la nouvelle version s’affiche.
-4. Vérifier dans **À propos** (ou dans **Réglages**, tout en bas) : « Version installée : v4 »
+4. Vérifier dans **À propos** (ou dans **Réglages**, tout en bas) : « Version installée : v5 »
    (ou le numéro attendu). Si ce n’est pas le cas, recommencer les étapes 1 à 3.
 
 Les données (fiche, réglages, phrases modifiées, appels, appel en cours) sont conservées lors d’une mise à jour.
@@ -196,6 +196,9 @@ La fiche :
 - [ ] Le numéro de téléphone se lit facilement.
 - [ ] « Appeler mon conjoint » ouvre le téléphone avec le bon numéro.
 - [ ] « Plein écran » est lisible pour une autre personne, et « Fermer » se trouve facilement.
+- [ ] « Plein écran » s’ouvre toujours en haut, sur le conjoint (même après avoir fait défiler).
+- [ ] En « Plein écran », verrouiller puis déverrouiller le téléphone : on est toujours en
+      « Plein écran ». Le bouton « retour » du téléphone ramène ensuite à la fiche.
 - [ ] La fiche s’ouvre en mode avion.
 
 Préparer un appel :

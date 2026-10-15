@@ -122,6 +122,7 @@ let numeroLecture = 0;            // augmente à chaque lecture (pour ignorer le
 let phrasesEnCours = [];          // garde les phrases en mémoire pendant la lecture
 let surveillanceLecture = null;   // minuterie qui vérifie la fin de la lecture
 let verrouEcran = null;           // empêche l'écran de s'éteindre en plein écran
+let heureDuChangementDeVisibilite = -Infinity;   // dernier passage en arrière-plan ou au premier plan
 
 
 /* ---------- 3. Petits outils ---------- */
@@ -259,9 +260,18 @@ function majuscule(texte) {
 
 /* ---------- 4. Le numéro de téléphone ---------- */
 
+// Les caractères acceptés dans un numéro : chiffres, espaces, points, tirets,
+// parenthèses, et un « + » au début.
+const CARACTERES_D_UN_NUMERO = /^\+?[\d\s.\-()]+$/;
+
 // Garde seulement les chiffres (et un « + » au début) : c'est le format du lien d'appel « tel: ».
+// Un numéro écrit « +33 (0)6 00 00 00 00 » : le « (0) » ne se compose pas après l'indicatif
+// du pays (+33). On l'enlève, sinon l'appel partirait vers un mauvais numéro.
 function numeroPourAppel(telephone) {
-  const texte = nettoyer(telephone);
+  let texte = nettoyer(telephone);
+  if (texte.startsWith('+')) {
+    texte = texte.replace(/\(\s*0\s*\)/g, '');
+  }
   const plus = texte.startsWith('+') ? '+' : '';
   return plus + texte.replace(/\D/g, '');
 }
@@ -294,7 +304,15 @@ function numeroValide(telephone) {
   if (!texte) {
     return true;
   }
-  return /^\+?[\d\s.\-()]+$/.test(texte) && texte.replace(/\D/g, '').length >= 3;
+  return CARACTERES_D_UN_NUMERO.test(texte) && texte.replace(/\D/g, '').length >= 3;
+}
+
+// Le message affiché sous une case dont le numéro n'est pas accepté :
+// des lettres (ou d'autres signes), ou bien pas assez de chiffres.
+function problemeDuNumero(telephone) {
+  return CARACTERES_D_UN_NUMERO.test(nettoyer(telephone))
+    ? 'Le numéro est trop court.'
+    : 'Le numéro ne doit contenir que des chiffres.';
 }
 
 
@@ -420,6 +438,9 @@ function preparerEtAfficher(nom, options = {}) {
   }
   afficherEcran(nom, options);
   if (nom === 'plein') {
+    // La fiche en plein écran s'ouvre toujours en haut, sur le conjoint,
+    // même si on l'avait fait défiler la fois précédente.
+    element('ecran-plein').querySelector('.plein-contenu').scrollTop = 0;
     garderEcranAllume();
   }
 }
@@ -734,7 +755,7 @@ function enregistrerFiche(evenement) {
   const numerosFaux = CHAMPS_TELEPHONE.filter((champ) => !numeroValide(nouvelleFiche[champ]));
   if (numerosFaux.length > 0) {
     numerosFaux.forEach((champ) => {
-      montrerErreur(formulaire.elements[champ], 'Le numéro ne doit contenir que des chiffres.');
+      montrerErreur(formulaire.elements[champ], problemeDuNumero(nouvelleFiche[champ]));
     });
     afficherMessage('message-modifier',
       numerosFaux.length === 1
@@ -879,14 +900,23 @@ function choisirVoix() {
     null;
 }
 
+// Les abréviations après lesquelles une phrase ne s'arrête pas :
+// une initiale (« M. Nom ») ou un titre (« Dr. Nom », « Mme. Nom »).
+const ABREVIATION_A_LA_FIN = /(?:^|[\s('’])(?:\p{Lu}|Dr|Dre|Pr|Mme|Mlle)$/u;
+
 // Découpe un texte en phrases (la voix lit mieux des phrases courtes).
-// On coupe seulement après un point suivi d'une espace (ou en fin de ligne) :
+// On coupe seulement après un point (ou « ! », « ? », « … ») suivi d'une espace, ou en fin de ligne :
 // une dose comme « 0.5 g » ou un numéro comme « 01.00.00.00.00 » reste entier,
 // et la voix le lit d'un seul tenant (sinon : « zéro », une pause, puis « 5 g »).
+// On ne coupe pas non plus après une abréviation : « Dr. Nom » est lu d'un seul tenant.
 function decouperEnPhrases(texte) {
   return nettoyer(texte)
     .split(/\n+/)
-    .flatMap((ligne) => ligne.split(/(?<=[.!?…])\s+/))
+    .flatMap((ligne) => ligne
+      // Chaque fin de phrase est marquée par un retour à la ligne, puis on coupe à ces endroits.
+      .replace(/([.!?…])\s+/g, (tout, signe, position) =>
+        (ABREVIATION_A_LA_FIN.test(ligne.slice(0, position)) ? tout : signe + '\n'))
+      .split('\n'))
     .map((phrase) => phrase.trim())
     .filter(Boolean);
 }
@@ -1070,10 +1100,22 @@ function quitterPleinEcranDuTelephone() {
 }
 
 // Si on quitte le plein écran avec le bouton « retour » du téléphone, on revient à la fiche.
+// Mais le téléphone quitte aussi le plein écran quand l'application passe en arrière-plan
+// (appel reçu, écran verrouillé, appui sur « Urgence : 15 »…). Dans ce cas, on reste
+// sur l'écran « Plein écran ». On attend donc un court instant, puis on vérifie
+// que l'application n'est pas passée en arrière-plan (ni revenue) à ce moment-là.
 function quandLePleinEcranChange() {
-  if (!document.fullscreenElement && ecranActuel === 'plein') {
-    revenirALaFiche();
+  if (document.fullscreenElement || ecranActuel !== 'plein') {
+    return;
   }
+  const sortie = performance.now();
+  setTimeout(() => {
+    const arrierePlan = document.visibilityState !== 'visible' ||
+      Math.abs(heureDuChangementDeVisibilite - sortie) < 1000;
+    if (!arrierePlan && !document.fullscreenElement && ecranActuel === 'plein') {
+      revenirALaFiche();
+    }
+  }, 500);
 }
 
 // Empêche l'écran de s'éteindre pendant qu'on montre la fiche (si le téléphone le permet).
@@ -1100,8 +1142,10 @@ function libererEcran() {
   }
 }
 
-// Le téléphone retire ce verrou quand l'application passe en arrière-plan : on le reprend au retour.
-function quandLaPageRedevientVisible() {
+// L'application passe en arrière-plan, ou revient au premier plan.
+// Le téléphone retire le verrou de l'écran en arrière-plan : on le reprend au retour.
+function quandLaVisibiliteChange() {
+  heureDuChangementDeVisibilite = performance.now();   // voir quandLePleinEcranChange()
   if (document.visibilityState === 'visible' && ecranActuel === 'plein') {
     garderEcranAllume();
   }
@@ -1170,7 +1214,7 @@ function brancherLesBoutons() {
 
   window.addEventListener('popstate', quandOnReculeDansLHistorique);
   document.addEventListener('fullscreenchange', quandLePleinEcranChange);
-  document.addEventListener('visibilitychange', quandLaPageRedevientVisible);
+  document.addEventListener('visibilitychange', quandLaVisibiliteChange);
 }
 
 
