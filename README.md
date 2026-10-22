@@ -271,3 +271,13 @@ Un cadre de couleur passe d’un élément à l’autre.
 
 Pour arrêter : Paramètres → Accessibilité → Accès via un contacteur → Désactiver
 (avec le commutateur « Sélectionner » si l’écran ne répond plus normalement au toucher).
+
+## Licence
+
+Distribué sous licence **[PolyForm Noncommercial 1.0.0](LICENSE)** (texte
+officiel en anglais, suivi d’une traduction française à titre indicatif).
+
+Vous pouvez utiliser, modifier et partager ce code librement, à condition que
+ce ne soit pas dans un but commercial et que le fichier de licence accompagne
+toujours le code. Toute utilisation commerciale nécessite l’accord de
+l’auteur. Le logiciel est fourni « en l’état », sans aucune garantie.
