@@ -110,10 +110,10 @@ La fiche doit s’afficher normalement.
 ## Mettre à jour l’application
 
 Après chaque modification d’un fichier, ouvrir `sw.js` et augmenter le numéro de version
-(la version actuelle est `v6`) :
+(la version actuelle est `v7`) :
 
 ```js
-const VERSION = 'v7';   // puis v8, v9…
+const VERSION = 'v8';   // puis v9, v10…
 ```
 
 C’est le seul endroit où le numéro est écrit : « Réglages » et « À propos » le lisent tout seuls.
