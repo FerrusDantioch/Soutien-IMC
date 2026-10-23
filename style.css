@@ -937,3 +937,8 @@ textarea.court {
   font-size: 1.15rem;
   font-weight: 700;
 }
+
+/* Adresse e-mail de la section « À propos » : un long mot sans espace,
+   qu'on autorise à passer à la ligne pour ne pas déborder sur un petit écran.
+   L'adresse est seule sur sa ligne, pour ne pas être coupée au milieu d'un mot. */
+.adresse-mail { display: block; overflow-wrap: anywhere; }
