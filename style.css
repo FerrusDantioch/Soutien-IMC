@@ -942,3 +942,15 @@ textarea.court {
    qu'on autorise à passer à la ligne pour ne pas déborder sur un petit écran.
    L'adresse est seule sur sa ligne, pour ne pas être coupée au milieu d'un mot. */
 .adresse-mail { display: block; overflow-wrap: anywhere; }
+
+/* Lien vers la licence (À propos) : couleur du texte autour, simplement
+   souligné (le bleu du navigateur serait trop vif). La hauteur minimale
+   garde une zone tactile confortable. */
+.lien-licence {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  display: inline-flex;
+  align-items: center;
+  min-height: 60px;
+}

@@ -274,10 +274,13 @@ Pour arrêter : Paramètres → Accessibilité → Accès via un contacteur → 
 
 ## Licence
 
-Distribué sous licence **[PolyForm Noncommercial 1.0.0](LICENSE)** (texte
-officiel en anglais, suivi d’une traduction française à titre indicatif).
+**© 2026 Ferrus Dantioch — Creative Commons BY-NC-ND 4.0**
+([résumé de la licence en français](https://creativecommons.org/licenses/by-nc-nd/4.0/deed.fr))
 
-Vous pouvez utiliser, modifier et partager ce code librement, à condition que
-ce ne soit pas dans un but commercial et que le fichier de licence accompagne
-toujours le code. Toute utilisation commerciale nécessite l’accord de
-l’auteur. Le logiciel est fourni « en l’état », sans aucune garantie.
+En clair : le partage est autorisé, à l'identique et en citant l'auteur ;
+l'usage commercial est interdit ; la modification et les œuvres dérivées
+sont interdites. Le logiciel est fourni « en l'état », sans aucune garantie.
+
+Texte complet dans le fichier [LICENSE](LICENSE) : le texte officiel en
+anglais, suivi de la traduction française officielle publiée par Creative
+Commons.
