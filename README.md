@@ -110,10 +110,10 @@ La fiche doit s’afficher normalement.
 ## Mettre à jour l’application
 
 Après chaque modification d’un fichier, ouvrir `sw.js` et augmenter le numéro de version
-(la version actuelle est `v7`) :
+(la version actuelle est `v9`) :
 
 ```js
-const VERSION = 'v8';   // puis v9, v10…
+const VERSION = 'v10';   // puis v11, v12…
 ```
 
 C’est le seul endroit où le numéro est écrit : « Réglages » et « À propos » le lisent tout seuls.
@@ -121,15 +121,18 @@ C’est le seul endroit où le numéro est écrit : « Réglages » et « À pro
 Sinon, les téléphones gardent l’ancienne copie. Si un fichier est ajouté, l’ajouter aussi
 à la liste `FICHIERS` dans `sw.js`.
 
-Sur le téléphone, pour recevoir la nouvelle version :
+Sur le téléphone, la nouvelle version **ne s’installe jamais par surprise** :
 
-1. Avec internet, ouvrir « Ma fiche ». Cette ouverture montre encore l’ancienne version :
-   la nouvelle se télécharge en arrière-plan. Attendre une dizaine de secondes.
-2. Fermer complètement l’application : bouton des applications récentes (le carré, ou glisser
-   depuis le bas de l’écran selon le réglage du téléphone), puis fermer « Ma fiche ».
-3. Rouvrir « Ma fiche » : la nouvelle version s’affiche.
-4. Vérifier dans **À propos** (ou dans **Réglages**, tout en bas) : « Version installée : v6 »
-   (ou le numéro attendu). Si ce n’est pas le cas, recommencer les étapes 1 à 3.
+1. Avec internet, ouvrir « Ma fiche ». La nouvelle version se télécharge en arrière-plan,
+   pendant que l’ancienne reste affichée.
+2. Quand elle est prête, le bouton **Réglages** de l’accueil porte l’étiquette
+   « Nouvelle version prête ». Dans les Réglages, toucher **Mettre à jour** : l’application
+   se recharge avec la nouvelle version.
+3. Si l’on ne touche pas le bouton, rien ne change tant que l’application reste ouverte.
+   Une fois « Ma fiche » complètement fermée (bouton des applications récentes, puis fermer
+   « Ma fiche »), la nouvelle version est là à l’ouverture suivante : c’est une règle du navigateur.
+4. Vérifier dans **À propos** (ou dans **Réglages**, tout en bas) : « Version installée : v9 »
+   (ou le numéro attendu).
 
 Les données (fiche, réglages, phrases modifiées, appels, appel en cours) sont conservées lors d’une mise à jour.
 

@@ -571,6 +571,31 @@ textarea {
   margin: 0.25rem 0 0;
 }
 
+/* « Nouvelle version prête », sur le bouton Réglages de l'accueil :
+   une étiquette fixe, sans clignotement ni animation. */
+.pastille {
+  padding: 0.1em 0.5em;
+  border: 2px solid var(--primaire);
+  border-radius: 999px;
+  background: var(--fond-conjoint);
+  font-size: 0.8em;
+  font-weight: 700;
+}
+
+/* Si la place manque, l'étiquette passe à la ligne au lieu de couper le
+   mot « Réglages » en deux. */
+#bouton-reglages {
+  flex-wrap: wrap;
+}
+
+#bouton-reglages > span:not(.pastille) {
+  white-space: nowrap;
+}
+
+#reglage-mise-a-jour .actions {
+  margin-top: 1rem;
+}
+
 
 /* ---------- 9. Le plein écran ---------- */
 

@@ -194,6 +194,8 @@
         <button type="button" id="bouton-reglages" class="bouton">
           <svg class="icone" aria-hidden="true" focusable="false"><use href="#icone-reglages"></use></svg>
           <span>Réglages</span>
+          <!-- Montrée seulement quand une nouvelle version attend (voir les Réglages). -->
+          <span id="pastille-mise-a-jour" class="pastille" hidden>Nouvelle version prête</span>
         </button>
       </div>
 
@@ -486,6 +488,21 @@
       <h1 id="titre-reglages" tabindex="-1">Réglages</h1>
 
       <div id="message-reglages" class="message" role="status"></div>
+
+      <!-- Nouvelle version prête : rien ne change tant que la personne n'a pas
+           touché « Mettre à jour ». Cachée le reste du temps (voir app.js). -->
+      <section id="reglage-mise-a-jour" class="reglage" aria-labelledby="titre-mise-a-jour" hidden>
+        <h2 id="titre-mise-a-jour">Nouvelle version</h2>
+        <p>Une nouvelle version de l’application est prête. Elle ne s’installe
+           que si vous le décidez. Votre fiche et vos réglages restent tels quels.</p>
+        <p class="aide">Si vous fermez complètement l’application, la nouvelle
+           version sera là à la prochaine ouverture.</p>
+        <div class="actions">
+          <button type="button" id="bouton-mettre-a-jour" class="bouton principal">
+            <span>Mettre à jour</span>
+          </button>
+        </div>
+      </section>
 
       <section class="reglage" aria-labelledby="titre-taille">
         <h2 id="titre-taille">Taille du texte</h2>
