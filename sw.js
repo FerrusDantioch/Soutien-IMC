@@ -15,7 +15,7 @@
 // IMPORTANT : à chaque modification d'un fichier de l'application,
 // augmentez ce numéro (v1 → v2 → v3…). Sinon, les téléphones
 // continueront d'utiliser l'ancienne copie.
-const VERSION = 'v8';
+const VERSION = 'v9';
 
 // Le nom de la copie commence par « soutien-imc- » pour ne jamais
 // toucher aux copies d'autres sites hébergés à la même adresse.
@@ -39,11 +39,15 @@ const FICHIERS = [
 
 // 1. Installation : on range une copie de chaque fichier.
 //    { cache: 'reload' } : on demande la version la plus récente au serveur.
+//    Volontairement, PAS de self.skipWaiting() ici : une nouvelle version
+//    attend que la personne touche « Mettre à jour » dans les Réglages
+//    (voir l'étape 3). Rien ne change par surprise. Seule exception, fixée
+//    par le navigateur : si l'application est complètement fermée, la
+//    nouvelle version est là à la prochaine ouverture.
 self.addEventListener('install', (evenement) => {
   evenement.waitUntil(
     caches.open(NOM_DE_LA_COPIE)
       .then((copie) => copie.addAll(FICHIERS.map((adresse) => new Request(adresse, { cache: 'reload' }))))
-      .then(() => self.skipWaiting())
   );
 });
 
@@ -62,7 +66,16 @@ self.addEventListener('activate', (evenement) => {
 });
 
 
-// 3. Chaque fois que l'application demande un fichier :
+// 3. La personne a touché « Mettre à jour » : cette version prend le relais.
+//    La page le remarque (événement « controllerchange ») et se recharge.
+self.addEventListener('message', (evenement) => {
+  if (evenement.data && evenement.data.type === 'activer') {
+    self.skipWaiting();
+  }
+});
+
+
+// 4. Chaque fois que l'application demande un fichier :
 //    on donne d'abord la copie rangée dans le téléphone (rapide, marche sans internet),
 //    sinon on va le chercher sur internet.
 self.addEventListener('fetch', (evenement) => {

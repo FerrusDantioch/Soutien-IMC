@@ -1208,6 +1208,7 @@ function brancherLesBoutons() {
   element('bouton-plus-lent').addEventListener('click', () => changerVitesse(-1));
   element('bouton-plus-rapide').addEventListener('click', () => changerVitesse(+1));
   element('bouton-modifier').addEventListener('click', () => ouvrirEcran('modifier'));
+  element('bouton-mettre-a-jour').addEventListener('click', mettreAJour);
   element('bouton-retour').addEventListener('click', revenirALaFiche);
 
   element('bouton-fermer').addEventListener('click', revenirALaFiche);
@@ -1230,9 +1231,62 @@ function preparerHorsLigne() {
   if (location.protocol !== 'https:' && !adresseLocale) {
     return;
   }
-  navigator.serviceWorker.register('./sw.js').catch(() => {
+  // Ce changement a aussi lieu à la toute première installation : on ne
+  // recharge que si la personne a touché « Mettre à jour ».
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (miseAJourDemandee) {
+      location.reload();
+    }
+  });
+  navigator.serviceWorker.register('./sw.js').then(surveillerMisesAJour).catch(() => {
     // Pas grave : l'application marche quand même, mais pas hors ligne.
   });
+}
+
+// Nouvelle version : le service worker la télécharge en arrière-plan, puis ATTEND.
+// Rien ne change par surprise : les Réglages proposent « Mettre à jour »
+// (et le bouton Réglages de l'accueil le signale). La personne choisit le moment.
+let inscriptionSw = null;
+let miseAJourDemandee = false;
+
+function surveillerMisesAJour(inscription) {
+  inscriptionSw = inscription;
+  // Une version attendait déjà (téléchargée lors d'une visite précédente).
+  montrerMiseAJour();
+  inscription.addEventListener('updatefound', () => {
+    const nouveau = inscription.installing;
+    if (!nouveau) {
+      return;
+    }
+    nouveau.addEventListener('statechange', () => {
+      if (nouveau.state === 'installed') {
+        montrerMiseAJour();
+      }
+    });
+  });
+  // À chaque retour dans l'application, on regarde s'il existe une nouvelle version.
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      inscription.update().catch(() => {});
+    }
+  });
+}
+
+function montrerMiseAJour() {
+  // Sans « controller », c'est la toute première installation : rien à proposer.
+  const prete = Boolean(inscriptionSw && inscriptionSw.waiting && navigator.serviceWorker.controller);
+  element('pastille-mise-a-jour').hidden = !prete;
+  element('reglage-mise-a-jour').hidden = !prete;
+}
+
+function mettreAJour() {
+  if (!inscriptionSw || !inscriptionSw.waiting) {
+    return;
+  }
+  miseAJourDemandee = true;
+  element('bouton-mettre-a-jour').disabled = true;
+  afficherMessage('message-reglages', 'Mise à jour en cours…', 'info');
+  inscriptionSw.waiting.postMessage({ type: 'activer' });
 }
 
 // Demande au navigateur de ne pas effacer les données de l'application
@@ -1246,6 +1300,8 @@ function protegerLesDonnees() {
 // Affiche la version installée, en bas des réglages et dans « À propos »
 // (pour vérifier une mise à jour). Elle est lue dans le nom de la copie hors ligne :
 // « soutien-imc-v3 » → « v3 ». Ainsi, le numéro n'est écrit qu'à un seul endroit : sw.js.
+// On prend le PLUS PETIT numéro : pendant qu'une nouvelle version attend
+// « Mettre à jour », sa copie existe déjà à côté de celle de la version utilisée.
 // Sans copie hors ligne (page ouverte depuis un fichier de l'ordinateur), la ligne reste cachée.
 function afficherVersion(idZone) {
   const zone = element(idZone);
@@ -1256,7 +1312,7 @@ function afficherVersion(idZone) {
         .map((nom) => parseInt(nom.slice('soutien-imc-v'.length), 10))
         .filter((numero) => numero > 0);
       if (numeros.length > 0) {
-        zone.textContent = 'Version installée : v' + Math.max(...numeros) + '.';
+        zone.textContent = 'Version installée : v' + Math.min(...numeros) + '.';
         zone.hidden = false;
       }
     }).catch(() => {});
