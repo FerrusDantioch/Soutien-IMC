@@ -20,3 +20,8 @@ ma-fiche-sauvegarde-*.json
 *.log
 *.tmp
 *~
+
+# Outils de test (npm install playwright)
+node_modules/
+package.json
+package-lock.json

@@ -69,6 +69,7 @@ elles sont tout en haut, dans la liste `RAISONS`.
 | `manifest.json` | Les informations pour installer l’application sur le téléphone |
 | `sw.js` | Le « service worker » : il permet d’utiliser l’application sans internet |
 | `icons/` | Les icônes de l’application |
+| `tests/` | Les tests automatiques (voir « Tests automatiques ») |
 
 ## Tester sur un ordinateur
 
@@ -274,6 +275,29 @@ Un cadre de couleur passe d’un élément à l’autre.
 
 Pour arrêter : Paramètres → Accessibilité → Accès via un contacteur → Désactiver
 (avec le commutateur « Sélectionner » si l’écran ne répond plus normalement au toucher).
+
+## Tests automatiques
+
+Les tests ouvrent l’application dans un vrai navigateur, font les gestes
+d’une personne et vérifient le résultat, y compris sans internet. Ils ne
+contactent aucun site. Ils ne servent qu’au développement : l’application
+n’en a pas besoin pour fonctionner.
+
+Il faut [Node.js](https://nodejs.org) (version 22 ou plus récente), puis,
+une seule fois, dans le dossier de l’application :
+
+```
+npm install playwright
+npx playwright install chromium
+```
+
+Ensuite, à chaque fois :
+
+```
+node tests/tester.js
+```
+
+Le bilan s’affiche à la fin : « Échecs : 0 » veut dire que tout va bien.
 
 ## Licence
 
