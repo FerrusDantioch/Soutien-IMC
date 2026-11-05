@@ -21,7 +21,7 @@ Boutons de l’accueil (en haut, pour ne jamais avoir à faire défiler l’écr
 **Écouter**, **Préparer un appel**, **Appeler mon conjoint**, **Plein écran**, **Réglages**
 (taille du texte, vitesse de la voix, modifier la fiche, mes données).
 Tout en bas, deux boutons discrets : **Aide** (cinq phrases) et **À propos** (la version installée,
-le concepteur de l’application, Ferrus Dantioch, et l’aide de Claude, l’intelligence artificielle d’Anthropic).
+le concepteur de l’application, Ferrus Dantioch, et l’aide de l’intelligence artificielle).
 
 ## Préparer un appel
 
